@@ -32,11 +32,11 @@ namespace KingdomGlobalLedger
                 PointerClick(RowView(mineRow.Key));
                 yield return null;
                 var center = mineA.World.transform.TransformPoint(((RectTransform)mineA.World.transform).rect.center);
-                Check(!Panel.gameObject.activeSelf && Vector2.Distance(camera.transform.position, center) < .1f && Navigation.Highlighted?.Building == mineA,
-                    "Building View button centers the actual building, highlights it and dismisses the dropdown");
+                Check(Panel.gameObject.activeSelf && Vector2.Distance(camera.transform.position, center) < .1f && Navigation.Highlighted?.Building == mineA,
+                    "Building View button centers the actual building and highlights it without closing the dropdown");
                 Check(!mineA.World.GetComponentInChildren<LedgerTargetOutline>().raycastTarget, "Highlights cannot intercept native world controls");
                 Capture(Path.Combine(directory, "global-ledger-building-focus.png"));
-                Navigation.Clear(); PointerClick(BarButton());
+                Navigation.Clear();
                 yield return null;
                 var frameRow = ContainerRow(foundry); RevealRow(frameRow.Key); beforeHover = camera.transform.position;
                 ExecuteEvents.Execute(RowButton(frameRow.Key).gameObject, hoverEvent, ExecuteEvents.pointerEnterHandler);
@@ -46,10 +46,10 @@ namespace KingdomGlobalLedger
                 PointerClick(RowView(frameRow.Key));
                 yield return null;
                 center = foundry.World.transform.TransformPoint(((RectTransform)foundry.World.transform).rect.center);
-                Check(Vector2.Distance(camera.transform.position, center) < .1f && Navigation.Highlighted?.Container == foundry,
-                    "Container View button centers and highlights the actual container");
+                Check(Panel.gameObject.activeSelf && Vector2.Distance(camera.transform.position, center) < .1f && Navigation.Highlighted?.Container == foundry,
+                    "Container View button centers and highlights the actual container without closing the dropdown");
                 Capture(Path.Combine(directory, "global-ledger-container-focus.png"));
-                Navigation.Clear(); PointerClick(BarButton());
+                Navigation.Clear();
                 yield return null;
                 var beforeMove = Book.Snapshot().Sum(t => t.Net(0));
                 var originalPosition = foundry.Position;
@@ -77,18 +77,18 @@ namespace KingdomGlobalLedger
                 PointerClick(RowView(remoteRow.Key));
                 yield return null;
                 center = remoteMine.World.transform.TransformPoint(((RectTransform)remoteMine.World.transform).rect.center);
-                Check(GamePlayer.Current.CurrentFlow == 1 && Vector2.Distance(camera.transform.position, center) < .1f && Navigation.Highlighted?.Building == remoteMine,
-                    "Clicking View on a building in another workspace switches there, centers it and highlights it");
-                Navigation.Clear(); WorldFlowManager.Instance.ShowFlow(0); PointerClick(BarButton());
+                Check(Panel.gameObject.activeSelf && GamePlayer.Current.CurrentFlow == 1 && Vector2.Distance(camera.transform.position, center) < .1f && Navigation.Highlighted?.Building == remoteMine,
+                    "Clicking View on a building in another workspace switches there, centers it and highlights it without closing the dropdown");
+                Navigation.Clear(); WorldFlowManager.Instance.ShowFlow(0);
                 yield return null;
                 var remoteFrameRow = ContainerRow(remoteContainer); RevealRow(remoteFrameRow.Key);
                 yield return null;
                 Check(remoteFrameRow.Label == "C Exports", "Remote container label also strips rich-text size tags");
                 PointerClick(RowView(remoteFrameRow.Key));
                 yield return null;
-                Check(GamePlayer.Current.CurrentFlow == 1 && Navigation.Highlighted?.Container == remoteContainer,
-                    "Container navigation also works across workspaces");
-                Navigation.Clear(); WorldFlowManager.Instance.ShowFlow(0); PointerClick(BarButton());
+                Check(Panel.gameObject.activeSelf && GamePlayer.Current.CurrentFlow == 1 && Navigation.Highlighted?.Container == remoteContainer,
+                    "Container navigation also works across workspaces without closing the dropdown");
+                Navigation.Clear(); WorldFlowManager.Instance.ShowFlow(0);
                 yield return null; Panel.Scroller.verticalNormalizedPosition = 1;
 
         }

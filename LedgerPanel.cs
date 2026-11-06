@@ -216,7 +216,7 @@ namespace KingdomGlobalLedger
         }
         void View(RowData row)
         {
-            if (row?.Target != null && GlobalLedgerPlugin.Instance.Navigation.Focus(row.Target)) ClosePopup();
+            if (row?.Target != null) GlobalLedgerPlugin.Instance.Navigation.Focus(row.Target);
         }
         internal void RefreshNow()
         {
@@ -257,7 +257,7 @@ namespace KingdomGlobalLedger
                 Add(root, LedgerUi.CurrencyName(currency) + " - Net Earnings", 0, currency, active.Sum(t => t.Totals.Net(c)), true);
                 if (collapsed.Contains(root)) continue;
                 if (active.Length == 0) { VisibleRows.Add(new RowData(root + "/empty", "No observed activity in the last minute.", 1)); continue; }
-                foreach (var group in active.GroupBy(t => t.GroupKey).OrderBy(g => g.First().GroupName, StringComparer.CurrentCulture))
+                foreach (var group in active.GroupBy(t => t.GroupKey).OrderBy(g => g.First().GroupName, StringComparer.CurrentCulture).ThenBy(g => g.Key, StringComparer.Ordinal))
                 {
                     string groupKey = root + "/" + group.Key;
                     var container = group.First();
@@ -300,7 +300,7 @@ namespace KingdomGlobalLedger
                 AddItem(root, LedgerUi.ItemName(item) + " - Net Production", 0, item, active.Sum(t => t.Totals.ItemNet(id)), true);
                 if (collapsed.Contains(root)) continue;
                 if (active.Length == 0) { VisibleRows.Add(new RowData(root + "/empty", "No observed activity in the last minute.", 1)); continue; }
-                foreach (var group in active.GroupBy(t => t.GroupKey).OrderBy(g => g.First().GroupName, StringComparer.CurrentCulture))
+                foreach (var group in active.GroupBy(t => t.GroupKey).OrderBy(g => g.First().GroupName, StringComparer.CurrentCulture).ThenBy(g => g.Key, StringComparer.Ordinal))
                 {
                     string groupKey = root + "/" + group.Key;
                     var container = group.First();

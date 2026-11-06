@@ -1,3 +1,9 @@
+0.1.5
+- Kept the Global Ledger dropdown open when clicking a View button so you can
+  center and highlight buildings or containers without reopening the ledger.
+- Disambiguated duplicate container names with stable _# suffixes (_1, _2, etc.)
+  based on workspace coordinates to prevent them from jumping around.
+
 0.1.4
 - Fixed Medals income tracking: attributed war combat medal earnings from
   WarProgress.UpdateWar directly to active workspace War Effort buildings.

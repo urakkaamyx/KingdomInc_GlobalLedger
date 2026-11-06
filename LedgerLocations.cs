@@ -79,6 +79,55 @@ namespace KingdomGlobalLedger
             var live = new Dictionary<string, LedgerTarget>();
             foreach (var flow in player.Flows)
                 foreach (var element in flow.Elements) live[element.Guid] = new LedgerTarget(flow, element);
+
+            // Pre-scan all live containers in a fixed spatial order across workspaces:
+            // flow index -> position Y descending -> position X ascending -> decoration index.
+            var containerList = new List<(FlowDiagram Flow, FlowDeco Deco, string BaseName)>();
+            for (int f = 0; f < player.Flows.Count; f++)
+            {
+                var flow = player.Flows[f];
+                if (flow?.Decorations == null) continue;
+                for (int d = 0; d < flow.Decorations.Count; d++)
+                {
+                    var deco = flow.Decorations[d];
+                    if (deco != null && deco.IsContainer)
+                    {
+                        var labels = flow.Decorations.Where(l => l.Label != null && CleanLabel(l.Label) != null && Overlap(deco, l.Position, l.Size));
+                        var label = labels.OrderBy(l => (l.Position - deco.Position).sqrMagnitude).FirstOrDefault();
+                        string baseName = (label != null ? CleanLabel(label.Label) : null) ?? "Container [" + deco.Position.x + ", " + deco.Position.y + "]";
+                        containerList.Add((flow, deco, baseName));
+                    }
+                }
+            }
+
+            var sortedContainers = containerList
+                .OrderBy(c => player.Flows.IndexOf(c.Flow))
+                .ThenByDescending(c => c.Deco.Position.y)
+                .ThenBy(c => c.Deco.Position.x)
+                .ThenBy(c => c.Flow.Decorations.IndexOf(c.Deco))
+                .ToList();
+
+            var containerNames = new Dictionary<FlowDeco, string>();
+            foreach (var group in sortedContainers.GroupBy(c => c.BaseName, StringComparer.Ordinal))
+            {
+                var items = group.ToList();
+                if (items.Count > 1)
+                {
+                    for (int i = 0; i < items.Count; i++)
+                        containerNames[items[i].Deco] = items[i].BaseName + "_" + (i + 1);
+                }
+                else
+                {
+                    containerNames[items[0].Deco] = items[0].BaseName;
+                }
+            }
+
+            foreach (var item in sortedContainers)
+            {
+                if (!containerIds.TryGetValue(item.Deco, out _))
+                    containerIds[item.Deco] = "container/" + ++nextId;
+            }
+
             var result = new List<Entry>();
             foreach (var item in totals)
             {
@@ -115,11 +164,8 @@ namespace KingdomGlobalLedger
                 }
                 else
                 {
-                    if (!containerIds.TryGetValue(container, out var id)) containerIds[container] = id = "container/" + ++nextId;
-                    entry.GroupKey = id;
-                    var labels = flow.Decorations.Where(d => d.Label != null && CleanLabel(d.Label) != null && Overlap(container, d.Position, d.Size));
-                    var label = labels.OrderBy(d => (d.Position - container.Position).sqrMagnitude).FirstOrDefault();
-                    entry.GroupName = (label != null ? CleanLabel(label.Label) : null) ?? "Container [" + container.Position.x + ", " + container.Position.y + "]";
+                    entry.GroupKey = containerIds[container];
+                    entry.GroupName = containerNames.TryGetValue(container, out var name) ? name : ("Container [" + container.Position.x + ", " + container.Position.y + "]");
                     var sticker = flow.Decorations.Where(d => d.Sticker != null && Overlap(container, d.Position, d.Size))
                         .OrderBy(d => (d.Position - container.Position).sqrMagnitude).FirstOrDefault();
                     entry.GroupIcon = sticker?.Sticker.GetSprite() ?? building.Icon ?? DefaultIcon(container);

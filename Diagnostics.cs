@@ -212,6 +212,15 @@ namespace KingdomGlobalLedger
                 Check(BuildingRow(mineA).Icon == mineA.Icon && BuildingRow(shop).Icon == shop.Icon, "Building rows use their real native icons");
                 var manaCost = Panel.VisibleRows.Single(r => r.Key == BuildingRow(enchanter).Key + "/costs/4");
                 Check(manaCost.IconOnly && manaCost.Icon == Currency.Mana.GetIcon(), "Operating costs use resource icons with no redundant currency text");
+                var commerceLabel = player.Flows[0].Decorations.Single(d => d.Label == "B Commerce");
+                commerceLabel.Label = "<size=48>A Foundry</size>";
+                Panel.RefreshNow();
+                Check(Panel.VisibleRows.Any(r => r.Label == "A Foundry_1") && Panel.VisibleRows.Any(r => r.Label == "A Foundry_2"),
+                    "Duplicate container names are disambiguated with _# suffixes and remain stably sorted");
+                commerceLabel.Label = "B Commerce";
+                Panel.RefreshNow();
+                mines = ContainerRow(foundry);
+                Check(mines.Label == "A Foundry", "Single container names retain their original unsuffixed label");
                 Capture(Path.Combine(directory, "global-ledger-initial.png"));
                 PointerClick(RowButton(mines.Key));
                 Check(Panel.gameObject.activeSelf && !Panel.VisibleRows.Any(r => r.Key.StartsWith(mines.Key + "/")),

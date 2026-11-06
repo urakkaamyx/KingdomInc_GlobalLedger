@@ -8,7 +8,7 @@ Track live currency earnings, operating expenses, and item production across you
 [*][b]Production tab:[/b] Follows the same hierarchy for unlocked items, sorted by [b]Tier (Tier 1–12) -> A–Z[/b]. Displays each item's rolling net production rate ([b]Produced - Consumed[/b] in [b]/min[/b]). Items with zero activity in the last minute are hidden by default; click [b]Show All[/b] in the header bar to show or hide zero-activity unlocked items. Expand an item root to inspect containers, individual buildings, and [b]Operating Costs[/b] (both consumed input items in [b]/min[/b] and spent currencies as icon-only rows).[/*]
 [*][b]Container & workspace grouping:[/b] Container rows display [b][ContainerIcon] | [ProductionIcon] [ContainerName][/b] using the game's native green container icon, a [b]|[/b] separator, and the overlapping icon sticker nearest the frame's top-left corner (or its building's production icon when no sticker is placed), alongside the cleaned container name (with TextMeshPro tags such as <size> stripped). Nested or overlapping frames assign each building to the smallest frame once; buildings outside frames appear under their workspace's [b]Uncontained[/b] group.[/*]
 [*][b]Collapse All & independent expanders:[/b] Click any row or its left arrow to expand or collapse its children without moving the camera. Click [b]Collapse All[/b] in the header bar to collapse all open roots, containers, buildings, and operating cost sections on the active tab so you can drill down one level at a time.[/*]
-[*][b]Hover highlight & dedicated View button:[/b] Hovering a container or building row highlights the object in the current workspace without panning. Live container and building rows provide a right-aligned [b]View[/b] button that switches workspaces if needed, centers and highlights the target for five seconds, and closes the dropdown.[/*]
+[*][b]Hover highlight & dedicated View button:[/b] Hovering a container or building row highlights the object in the current workspace without panning. Live container and building rows provide a right-aligned [b]View[/b] button that switches workspaces if needed, centers and highlights the target for five seconds without closing the dropdown.[/*]
 [/list]
 
 [b]How the accounting works[/b]
@@ -29,4 +29,4 @@ Accounting history is session-local and adds no custom buildings, research, or s
 [b]Credits and links[/b]
 By rockyamyx / Urakka. Native game frames, fonts, and icons are used from the installed game and are not redistributed. Generative AI was used for code, documentation, and promotional thumbnail artwork.
 [url=https://github.com/urakkaamyx/KingdomInc_GlobalLedger]Source and user guide on GitHub[/url]
-[url=https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases/tag/v0.1.4]GitHub release 0.1.4[/url]
+[url=https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases/tag/v0.1.5]GitHub release 0.1.5[/url]
