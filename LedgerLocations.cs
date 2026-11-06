@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Assets.Source.Adventure;
 using Assets.Source.Flow;
 using Assets.Source.Player;
 using Assets.Source.Util;
@@ -84,6 +85,15 @@ namespace KingdomGlobalLedger
                 var entry = new Entry { Totals = item, BuildingName = item.Source.Name };
                 if (!live.TryGetValue(item.Source.Id, out var target))
                 {
+                    if (item.Source.TypeId == "War")
+                    {
+                        entry.GroupKey = "war";
+                        entry.GroupName = "War Progress";
+                        var war = WarType.Get(item.Source.Id.StartsWith("war_") ? item.Source.Id.Substring(4) : item.Source.Id);
+                        entry.GroupIcon = entry.BuildingIcon = war?.Icon ?? DefaultIcon(null);
+                        result.Add(entry);
+                        continue;
+                    }
                     entry.GroupKey = "removed"; entry.GroupName = "Removed buildings";
                     entry.GroupIcon = DefaultIcon(null); result.Add(entry); continue;
                 }

@@ -13,7 +13,7 @@ namespace KingdomGlobalLedger
     [BepInDependency("urakka.kingdominc.foundation", "0.6.0")]
     public sealed partial class GlobalLedgerPlugin : BaseUnityPlugin
     {
-        public const string Id = "urakka.kingdominc.globalledger", Version = "0.1.3";
+        public const string Id = "urakka.kingdominc.globalledger", Version = "0.1.4";
         internal static GlobalLedgerPlugin Instance;
         internal readonly LedgerBook Book = new LedgerBook(() => Time.realtimeSinceStartupAsDouble);
         internal LedgerPanel Panel;

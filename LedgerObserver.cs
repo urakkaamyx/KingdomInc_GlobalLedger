@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using Assets.Source.Adventure;
 using Assets.Source.Flow;
 using Assets.Source.Flow.Elements;
 using Assets.Source.Items;
@@ -205,6 +206,7 @@ namespace KingdomGlobalLedger
             harmony.CreateClassProcessor(typeof(Income)).Patch();
             harmony.CreateClassProcessor(typeof(Spending)).Patch();
             harmony.CreateClassProcessor(typeof(Consumed)).Patch();
+            harmony.CreateClassProcessor(typeof(WarProgressPatch)).Patch();
         }
         static void Enter(FlowElement __instance, out Frame __state) => __state = Begin(__instance);
         static Exception Leave(Frame __state, Exception __exception)
@@ -217,7 +219,78 @@ namespace KingdomGlobalLedger
         static class Income
         {
             static void Postfix(GamePlayer __instance, Currency c, long amt, bool isIncome)
-            { if (current != null && current.Player == __instance && isIncome) current.Income[(int)c] += amt; }
+            {
+                if (!isIncome || amt <= 0) return;
+                if (current != null && current.Player == __instance) current.Income[(int)c] += amt;
+                else if (current == null) WarProgressPatch.RecordIncome(c, amt);
+            }
+        }
+        [HarmonyPatch(typeof(WarProgress), nameof(WarProgress.UpdateWar))]
+        static class WarProgressPatch
+        {
+            static WarProgress activeWar;
+            static long warMedals;
+
+            static void Prefix(WarProgress __instance)
+            {
+                activeWar = __instance;
+                warMedals = 0;
+            }
+
+            static void Postfix(WarProgress __instance)
+            {
+                try
+                {
+                    if (warMedals > 0 && GlobalLedgerPlugin.Instance?.Book != null && GamePlayer.Current != null)
+                    {
+                        var war = __instance.War;
+                        var allWarEfforts = GamePlayer.Current.Flows?.SelectMany(f => f.Elements.OfType<WarEffort>()).ToList();
+                        var warEfforts = allWarEfforts?.Where(w => w != null && w.WarType == war).ToList();
+
+                        if (warEfforts != null && warEfforts.Count > 0)
+                        {
+                            var connected = warEfforts.Where(w => w.Inputs != null && w.Inputs.Count > 0 && w.Inputs[0].ConnectedPipe != null).ToList();
+                            var targets = connected.Count > 0 ? connected : warEfforts;
+                            long baseShare = warMedals / targets.Count;
+                            long remainder = warMedals % targets.Count;
+                            for (int i = 0; i < targets.Count; i++)
+                            {
+                                long share = baseShare + (i < remainder ? 1 : 0);
+                                if (share > 0)
+                                {
+                                    var source = Describe(targets[i]);
+                                    GlobalLedgerPlugin.Instance.Book.Record(source, Currency.Medal, share, 0);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            string warName = Translation.Translate(war.DisplayName);
+                            if (string.IsNullOrEmpty(warName) || warName.StartsWith("@")) warName = war.DisplayName ?? war.Identifier;
+                            var source = new LedgerBook.Source("war_" + war.Identifier, "War", warName, warName);
+                            GlobalLedgerPlugin.Instance.Book.Record(source, Currency.Medal, warMedals, 0);
+                        }
+                    }
+                }
+                finally
+                {
+                    activeWar = null;
+                    warMedals = 0;
+                }
+            }
+
+            static Exception Finalizer(Exception __exception)
+            {
+                activeWar = null;
+                warMedals = 0;
+                return __exception;
+            }
+
+            internal static void RecordIncome(Currency c, long amt)
+            {
+                if (activeWar != null && c == Currency.Medal && amt > 0)
+                    warMedals += amt;
+            }
         }
         [HarmonyPatch(typeof(GamePlayer), nameof(GamePlayer.SpendCurrency), new[] { typeof(Currency), typeof(long) })]
         static class Spending

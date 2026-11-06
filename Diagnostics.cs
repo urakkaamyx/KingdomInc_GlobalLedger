@@ -6,10 +6,12 @@ using System.Linq;
 using Assets.Behaviour.Flow;
 using Assets.Behaviour.UI;
 using Assets.Behaviour.UI.Shared;
+using Assets.Source.Adventure;
 using Assets.Source.Flow;
 using Assets.Source.Flow.Elements;
 using Assets.Source.Flow.Stickers;
 using Assets.Source.Items;
+using Assets.Source.Items.Data;
 using Assets.Source.Player;
 using Assets.Source.Util;
 using BepInEx;
@@ -78,6 +80,7 @@ namespace KingdomGlobalLedger
             Collector collector = null;
             Enchanter enchanter = null;
             Shop shop = null;
+            WarEffort warEffort = null;
             FlowDeco foundry = null, commerce = null, remoteContainer = null;
             Mine remoteMine = null;
             Mouse mouse = null;
@@ -121,7 +124,8 @@ namespace KingdomGlobalLedger
                 collector = new Collector { Position = new Vector2Int(420, 0) };
                 enchanter = new Enchanter { Position = new Vector2Int(200, -180) };
                 shop = new Shop { Position = new Vector2Int(200, 180) };
-                player.Flows[0].Elements.AddRange(new FlowElement[] { mineA, mineB, forge, collector, enchanter, shop });
+                warEffort = new WarEffort { Position = new Vector2Int(200, 0) };
+                player.Flows[0].Elements.AddRange(new FlowElement[] { mineA, mineB, forge, collector, enchanter, shop, warEffort });
                 foundry = new FlowDeco { Position = new Vector2Int(-750, 300), Size = new Vector2Int(620, 800), IsParent = true };
                 commerce = new FlowDeco { Position = new Vector2Int(100, 300), Size = new Vector2Int(640, 800), IsParent = true };
                 player.Flows[0].Decorations.AddRange(new[] {
@@ -264,6 +268,42 @@ namespace KingdomGlobalLedger
                 Check(Mathf.Abs(Panel.Scroller.content.anchoredPosition.y - position) < 1, "Live refresh preserves scroll position");
                 Panel.Scroller.verticalNormalizedPosition = 1;
                 Capture(Path.Combine(directory, "global-ledger-currencies.png"));
+                GamePlayer.Current.AddTech("war_effort");
+                Check(Currency.Medal.IsUnlocked(), "War Effort research unlocks Medals");
+                var warType = warEffort.WarType = WarType.Get("forest");
+                GamePlayer.Current.UnlockWar(warType);
+                var progress = GamePlayer.Current.GetWarProgress(warType);
+                for (int s = 0; s < 30; s++)
+                {
+                    var humanItem = new InventoryItem("soldier"); humanItem.InitializeData();
+                    var humanData = humanItem.Data as HumanItemData;
+                    humanData.Equipment.Add(new InventoryItem("iron_sword"));
+                    progress.Soldiers.Add(humanData);
+                }
+                long medalsBefore = Book.Snapshot().Sum(t => t.Earned[(int)Currency.Medal]);
+                progress.UpdateWar();
+                long medalsAfter = Book.Snapshot().Sum(t => t.Earned[(int)Currency.Medal]);
+                Check(medalsAfter > medalsBefore && Book.Snapshot().Single(t => t.Source.Id == warEffort.Guid).Earned[(int)Currency.Medal] == medalsAfter - medalsBefore,
+                    "WarProgress.UpdateWar attributes war medal gains directly to the matching WarEffort building in Global Ledger");
+                Panel.RefreshNow();
+                var medalsRoot = Panel.VisibleRows.Single(r => r.Key == "currency/2");
+                Check(medalsRoot.Amount == medalsAfter - medalsBefore && Panel.VisibleRows.Any(r => r.Key == BuildingRow(warEffort, "currency/2/").Key),
+                    "Medals root reconciles with the WarEffort building gain on the Currencies tab");
+                var eastWar = WarType.Get("eastern");
+                GamePlayer.Current.UnlockWar(eastWar);
+                var eastProgress = GamePlayer.Current.GetWarProgress(eastWar);
+                for (int s = 0; s < 30; s++)
+                {
+                    var humanItem = new InventoryItem("soldier"); humanItem.InitializeData();
+                    var humanData = humanItem.Data as HumanItemData;
+                    humanData.Equipment.Add(new InventoryItem("iron_sword"));
+                    eastProgress.Soldiers.Add(humanData);
+                }
+                long eastMedalsBefore = Book.Snapshot().Sum(t => t.Earned[(int)Currency.Medal]);
+                eastProgress.UpdateWar();
+                long eastMedalsAfter = Book.Snapshot().Sum(t => t.Earned[(int)Currency.Medal]);
+                Check(eastMedalsAfter > eastMedalsBefore && Book.Snapshot().Single(t => t.Source.Id == "war_eastern").Earned[(int)Currency.Medal] == eastMedalsAfter - eastMedalsBefore,
+                    "WarProgress.UpdateWar without matching workspace WarEffort nodes records under the War Progress category");
             }
             catch (Exception ex) { error = ex.ToString(); }
             if (error == null)
