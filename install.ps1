@@ -29,8 +29,8 @@ if ($gameRunning -and $WhenGameCloses) {
     Copy-Item -LiteralPath $source -Destination $snapshot
     $digest = (Get-FileHash -LiteralPath $snapshot).Hash
     $shellExe = (Get-Process -Id $PID).Path
-    $arguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + $PSCommandPath + '"'),'-PendingDll',('"' + $snapshot + '"'),'-ExpectedSha256',$digest)
-    $helper = Start-Process -FilePath $shellExe -WindowStyle Hidden -ArgumentList $arguments -RedirectStandardOutput (Join-Path $pending 'install.log') -RedirectStandardError (Join-Path $pending 'install-error.log') -PassThru
+    $command = "& '$PSCommandPath' -PendingDll '$snapshot' -ExpectedSha256 '$digest'"
+    $helper = Start-Process -FilePath $shellExe -WindowStyle Hidden -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-Command',$command) -PassThru
     [pscustomobject]@{ Status = 'Queued until Kingdom Inc closes'; HelperPID = $helper.Id; PendingDll = $snapshot; SHA256 = $digest } | ConvertTo-Json
     return
 }
