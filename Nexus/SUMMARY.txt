@@ -1,1 +1,2 @@
 Kingdom-wide Currency and Production dropdown on the top Mod Bar, grouping rolling 60-second net rates, containers, buildings, and operating costs with hover highlights and one-click View navigation.
+

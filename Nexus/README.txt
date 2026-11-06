@@ -1,4 +1,4 @@
-Global Ledger 0.1.2 for Kingdom Inc
+Global Ledger 0.1.3 for Kingdom Inc
 
 Track live currency earnings, operating expenses, and item production across
 your entire kingdom from the top Mod Bar.
@@ -11,11 +11,14 @@ Installed file: BepInEx/plugins/GlobalLedger/GlobalLedger.dll
 Restart the game after installation or an update.
 
 FEATURES & USE
-- Click Global Ledger on the top Mod Bar to open or close the dropdown.
+- Click Global Ledger on the right of the top Mod Bar to open or close the
+  dropdown. While open, you can freely pan (WASD and mouse drag), zoom, and
+  click on the workspace without closing the ledger.
 - Currencies tab: View every unlocked currency's rolling net rate over the
-  last 60 seconds (Gold in g/min; other currencies in their native units).
-  Expand a currency to inspect containers, individual buildings, and
-  Operating Costs (icon-only currency rows formatted to two decimal places).
+  last 60 seconds (Gold is written out in full Gold, Silver, and Copper
+  denominations with native coin symbols; other currencies use their native
+  units). Expand a currency to inspect containers, individual buildings, and
+  Operating Costs (icon-only currency rows).
 - Production tab: View unlocked items sorted by Tier -> A-Z and their rolling
   net production rate (Produced - Consumed in /min). Items with zero activity
   are hidden by default; click Show All in the header bar to show or hide

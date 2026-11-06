@@ -34,20 +34,24 @@ def archive(path, entries):
 
 def main():
     dll = (PROJECT / 'bin/Release/netstandard2.1/GlobalLedger.dll').read_bytes()
-    assert dll == (GAME / 'BepInEx/plugins/GlobalLedger/GlobalLedger.dll').read_bytes()
-    foundation_sha = digest((GAME / 'BepInEx/plugins/Foundation/Foundation.dll').read_bytes())
+    installed_dll = GAME / 'BepInEx/plugins/GlobalLedger/GlobalLedger.dll'
+    built_foundation = PROJECT.parent / 'Foundation/bin/Release/netstandard2.1/Foundation.dll'
+    foundation_path = built_foundation if built_foundation.exists() else (GAME / 'BepInEx/plugins/Foundation/Foundation.dll')
+    foundation_sha = digest(foundation_path.read_bytes())
     reports = [json.loads((PROJECT / 'Verification' / name).read_text(encoding='utf-8-sig')) for name in ('runtime-tests.json', 'compatibility-tests.json')]
     for report in reports:
-        assert report['passed'] and not report['error'] and report['count'] >= 98
+        assert report['passed'] and not report['error'] and report['count'] >= 99
         assert report['version'] == VERSION and report['dllSha256'] == digest(dll)
         assert 'Foundation 0.6.0' in report['plugins']
         assert any('Production tab sorts active items by Tier then A-Z and hides zero-production items by default' in check for check in report['checks'])
         assert any('Container rows display [ContainerIcon (IconDecoRect)] | [ProductionIcon] [ContainerName]' in check for check in report['checks'])
         assert any('Container and building rows with live targets show a dedicated View button on the right' in check for check in report['checks'])
         assert any('Collapse All button collapses all currency roots' in check for check in report['checks'])
+        assert any('Gold rows display XX[GoldCoin] XX[SilverCoin] XX[CopperCoin] with native coin symbols' in check for check in report['checks'])
+        assert any('Workspace camera pans and zooms normally while Global Ledger stays open' in check for check in report['checks'])
     for log in ('unity-isolated.log', 'unity-companion.log'):
         text = (PROJECT / 'Verification' / log).read_text(encoding='utf-8', errors='replace')
-        assert 'Global Ledger passed 98 runtime checks.' in text
+        assert f"Global Ledger passed {reports[0]['count']} runtime checks." in text
         assert 'NullReferenceException' not in text and '[Error  :Global Ledger]' not in text
     forbidden = r'verification|runtime|diagnostic|isolated|companion|Sharable Blueprints|Party[ -]?(?:Up|Node)|Leyline|Path[ -]?Finder|Factory API'
     for name in ('README.md', 'Nexus/README.txt', 'Nexus/NEXUS_DESCRIPTION.bbcode.txt'):

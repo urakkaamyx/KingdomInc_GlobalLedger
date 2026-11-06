@@ -1,3 +1,13 @@
+0.1.3
+- Replaced Gold shorthand (g/min) across the entire ledger (Currencies root,
+  containers, buildings, and Operating Costs on both tabs) with full Gold,
+  Silver, and Copper denominations using native coin symbols
+  ([sign]XX [GoldCoin] XX [SilverCoin] XX [CopperCoin]).
+- Moved the Global Ledger button to the right side of the top Mod Bar.
+- Made the Global Ledger dropdown non-modal on the workspace so you can freely
+  pan (WASD and mouse drag), zoom, and click on the workspace without closing
+  the ledger.
+
 0.1.2
 - Added the full Production tab matching the Currencies hierarchy: Item root
   (<Item> - Net Production in /min) > Container > Building > Operating Costs
@@ -24,3 +34,4 @@
 0.1.0
 - Initial Global Ledger Mod Bar dropdown with rolling 60-second currency
   accounting.
+

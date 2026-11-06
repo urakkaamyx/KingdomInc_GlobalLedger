@@ -10,3 +10,4 @@ https://github.com/urakkaamyx/KingdomInc_Foundation/releases/latest
 
 Install the Foundation player package, then this mod. Close the game before
 replacing DLLs. Foundation and BepInEx are not bundled with this mod.
+

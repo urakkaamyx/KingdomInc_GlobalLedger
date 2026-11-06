@@ -2,12 +2,14 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <Version>0.1.2</Version>
+    <Version>0.1.3</Version>
     <AssemblyName>GlobalLedger</AssemblyName>
     <GameRoot Condition="'$(GameRoot)' == ''">$(MSBuildThisFileDirectory)..\..\</GameRoot>
+    <FoundationDll Condition="'$(FoundationDll)' == '' and Exists('$(MSBuildThisFileDirectory)..\Foundation\bin\Release\netstandard2.1\Foundation.dll')">$(MSBuildThisFileDirectory)..\Foundation\bin\Release\netstandard2.1\Foundation.dll</FoundationDll>
+    <FoundationDll Condition="'$(FoundationDll)' == ''">$(GameRoot)BepInEx\plugins\Foundation\Foundation.dll</FoundationDll>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Foundation"><HintPath>$(GameRoot)BepInEx\plugins\Foundation\Foundation.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Foundation"><HintPath>$(FoundationDll)</HintPath><Private>false</Private></Reference>
     <Reference Include="BepInEx"><HintPath>$(GameRoot)BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(GameRoot)BepInEx\core\0Harmony.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="Assembly-CSharp"><HintPath>$(GameRoot)KingdomInc_Data\Managed\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>

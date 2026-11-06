@@ -13,7 +13,7 @@ namespace KingdomGlobalLedger
     [BepInDependency("urakka.kingdominc.foundation", "0.6.0")]
     public sealed partial class GlobalLedgerPlugin : BaseUnityPlugin
     {
-        public const string Id = "urakka.kingdominc.globalledger", Version = "0.1.2";
+        public const string Id = "urakka.kingdominc.globalledger", Version = "0.1.3";
         internal static GlobalLedgerPlugin Instance;
         internal readonly LedgerBook Book = new LedgerBook(() => Time.realtimeSinceStartupAsDouble);
         internal LedgerPanel Panel;
@@ -31,6 +31,7 @@ namespace KingdomGlobalLedger
                 hooks = new Harmony(Id);
                 LedgerObserver.Install(hooks);
                 hooks.CreateClassProcessor(typeof(HudVisibility)).Patch();
+                hooks.CreateClassProcessor(typeof(EscapeDismiss)).Patch();
                 Navigation = gameObject.AddComponent<LedgerNavigation>();
                 Registration = FoundationApi.ModBar.Register(new LedgerBarElement(this));
                 if (Diagnostic) { InstallDiagnostics(); Application.runInBackground = true; StartCoroutine(RuntimeCheck()); }
@@ -67,12 +68,24 @@ namespace KingdomGlobalLedger
                 if (panel && panel.gameObject.activeSelf && !__instance.GetComponent<Canvas>().enabled) panel.ClosePopup();
             }
         }
+        [HarmonyPatch(typeof(GameUI), nameof(GameUI.ProcessEscape))]
+        static class EscapeDismiss
+        {
+            static bool Prefix(GameUI __instance)
+            {
+                var panel = Instance?.Panel;
+                if (!panel || !panel.gameObject.activeSelf || !__instance.GetComponent<Canvas>().enabled || UIAlertWindow.Active || __instance.IsActive(GameUIType.Popup))
+                    return true;
+                panel.ClosePopup();
+                return false;
+            }
+        }
     }
 
     internal sealed class LedgerBarElement : ModBarElement
     {
         readonly GlobalLedgerPlugin plugin;
-        internal LedgerBarElement(GlobalLedgerPlugin plugin) : base(GlobalLedgerPlugin.Id, "open", 220, 0) { this.plugin = plugin; }
+        internal LedgerBarElement(GlobalLedgerPlugin plugin) : base(GlobalLedgerPlugin.Id, "open", 220, 0, ModBarAlignment.Right) { this.plugin = plugin; }
         public override IModBarView CreateView(IModBarContext context) => new LedgerBarView(plugin, context);
     }
 
@@ -96,8 +109,7 @@ namespace KingdomGlobalLedger
                 plugin.Panel = panel;
                 panel.OnPopupClosed += Refresh;
             }
-            GameUI.Instance.TogglePopupMenu(panel);
-            if (panel.gameObject.activeSelf) panel.RefreshNow();
+            panel.TogglePopup();
             Refresh();
         }
         public void Refresh()
@@ -109,7 +121,7 @@ namespace KingdomGlobalLedger
             if (panel)
             {
                 panel.OnPopupClosed -= Refresh;
-                if (GameUI.Instance && panel.gameObject.activeSelf) panel.ClosePopup();
+                if (GameUI.Instance && panel.gameObject.activeSelf) panel.ClosePopup(false);
                 UnityEngine.Object.Destroy(panel.gameObject);
             }
             if (plugin.Panel == panel) plugin.Panel = null;

@@ -101,10 +101,10 @@ namespace KingdomGlobalLedger
                     && testBook.Snapshot().Single().ItemNet("iron_ore") == -4 && testBook.Snapshot().Single().ItemNet("iron_ingot") == 2,
                     "Currencies and items never convert or offset across types");
                 testBook.Reset(); Check(testBook.Snapshot().Count == 0, "Reset clears session observations");
-                Check(LedgerUi.Rate(-12345, Currency.Gold) == "-1.23 g/min" && LedgerUi.Rate(3, Currency.Mana) == "+3.00/min"
-                    && LedgerUi.Rate(-1, Currency.Gold) == "0.00 g/min"
+                Check(LedgerUi.Rate(-12345, Currency.Gold) == "-1g 23s 45c" && LedgerUi.Rate(3, Currency.Mana) == "+3.00/min"
+                    && LedgerUi.Rate(-1, Currency.Gold) == "-0g 0s 1c" && LedgerUi.Rate(0, Currency.Gold) == "0g 0s 0c"
                     && LedgerUi.ItemRate(3) == "+3.00/min" && LedgerUi.ItemRate(-2) == "-2.00/min" && LedgerUi.ItemRate(0) == "0.00/min",
-                    "Rates use exactly two decimals and never show negative zero");
+                    "Gold rates use exact XXg XXs XXc denominations and other rates use two decimals");
                 Check(LedgerLocations.CleanLabel("<size=48>01  FOREST DEFENSE</size>") == "01  FOREST DEFENSE",
                     "Container label cleaner strips rich-text size tags");
                 var player = GamePlayer.CreateNewPlayer(); player.Flows[0].Elements.Clear(); player.Flows[0].Label = "Ironworks";
@@ -141,7 +141,9 @@ namespace KingdomGlobalLedger
             if (error == null) try
             {
                 mouse = InputSystem.AddDevice<Mouse>(); mouse.MakeCurrent();
-                Check(FoundationApi.ModBar.Items.Count(r => r.ModId == Id) == 1, "Exactly one Global Ledger entry is registered through Foundation API");
+                Check(FoundationApi.ModBar.Items.Count(r => r.ModId == Id) == 1
+                    && FoundationApi.ModBar.Items.Single(r => r.ModId == Id).Element.Alignment == ModBarAlignment.Right,
+                    "Exactly one Global Ledger entry is registered on the right of the Foundation Mod Bar");
                 foreach (var element in GamePlayer.Current.Flows[0].Elements) element.UpdateUpgrades();
                 Check(shop.World && mineA.World && forge.World, "Disposable fixture buildings have native world views");
                 Book.Reset();
@@ -183,6 +185,17 @@ namespace KingdomGlobalLedger
                 Check(!RowView("currency/0").gameObject.activeSelf, "Root rows without a world target hide the View button");
                 var gold = Panel.VisibleRows.Single(r => r.Key == "currency/0");
                 Check(gold.Amount == Book.Snapshot().Sum(t => t.Net(0)), "Root net reconciles with the individual building nets");
+                var goldRate = RowButton("currency/0").transform.Find("GoldRate");
+                var (goldSign, goldG, goldS, goldC) = LedgerUi.SplitGold(gold.Amount);
+                Check(goldRate.gameObject.activeSelf && !RowButton("currency/0").transform.Find("Rate").gameObject.activeSelf
+                    && goldRate.Find("GoldAmount").GetComponent<TMP_Text>().text == goldSign + goldG
+                    && goldRate.Find("SilverAmount").GetComponent<TMP_Text>().text == goldS.ToString()
+                    && goldRate.Find("CopperAmount").GetComponent<TMP_Text>().text == goldC.ToString()
+                    && goldRate.Find("GoldCoin").GetComponent<Image>().sprite == LedgerUi.GoldCoin()
+                    && goldRate.Find("SilverCoin").GetComponent<Image>().sprite == LedgerUi.SilverCoin()
+                    && goldRate.Find("CopperCoin").GetComponent<Image>().sprite == LedgerUi.CopperCoin()
+                    && LedgerUi.GoldCoin() != null && LedgerUi.SilverCoin() != null && LedgerUi.CopperCoin() != null,
+                    "Gold rows display XX[GoldCoin] XX[SilverCoin] XX[CopperCoin] with native coin symbols");
                 var mines = ContainerRow(foundry);
                 Check(mines.Label == "A Foundry" && mines.Amount == Book.Snapshot().Where(t => t.Source.TypeId == "Mine").Sum(t => t.Net(0)),
                     "Container label strips rich-text tags and groups two distinct Mine instances without a building-type layer");
@@ -271,13 +284,21 @@ namespace KingdomGlobalLedger
                 GameUI.Instance.ProcessEscape();
                 Check(!Panel.gameObject.activeSelf && !GameUI.MenuVisible, "Native Escape dismisses Ledger before opening the game menu");
                 PointerClick(BarButton());
-                var backdrop = Panel.transform.Find("DismissBackdrop").GetComponent<Button>();
-                var pointer = new PointerEventData(EventSystem.current) { position = new Vector2(Screen.width - 5, 5), button = PointerEventData.InputButton.Left };
+                var pointer = new PointerEventData(EventSystem.current) { position = new Vector2(200, 500), button = PointerEventData.InputButton.Left };
                 var hits = new List<RaycastResult>(); EventSystem.current.RaycastAll(pointer, hits);
-                Check(hits.Count > 0 && hits[0].gameObject == backdrop.gameObject, "Outside clicks reach the owned dismiss backdrop");
-                ExecuteEvents.Execute(backdrop.gameObject, pointer, ExecuteEvents.pointerClickHandler);
-                Check(!Panel.gameObject.activeSelf, "Clicking outside closes the dropdown");
-                PointerClick(BarButton()); GameUI.Instance.ToggleUI(false);
+                Check(!hits.Any(h => h.gameObject.transform.IsChildOf(Panel.transform)) && Panel.gameObject.activeSelf,
+                    "Workspace clicks outside Global Ledger are not intercepted and do not close the dropdown");
+                WorldFlowCamera.Instance.RecalculateBounds();
+                var camBefore = Camera.main.transform.position;
+                int zoomBefore = WorldFlowCamera.Instance.ZoomLevel;
+                Check(!UIBlocksZoom.Blocked, "Open Global Ledger does not block workspace zoom when cursor is over the workspace");
+                WorldFlowCamera.Instance.Move(120, -80);
+                var camMoved = Camera.main.transform.position;
+                WorldFlowCamera.Instance.ChangeZoomLevel(zoomBefore > 0 ? -1 : 1);
+                Check(Panel.gameObject.activeSelf && Vector2.Distance(camMoved, camBefore) > 10 && WorldFlowCamera.Instance.ZoomLevel != zoomBefore,
+                    "Workspace camera pans and zooms normally while Global Ledger stays open");
+                WorldFlowCamera.Instance.SetZoomLevel(zoomBefore);
+                GameUI.Instance.ToggleUI(false);
                 Check(!Panel.gameObject.activeSelf, "Hiding the HUD closes the custom dropdown");
                 GameUI.Instance.ToggleUI(true);
             }
@@ -287,7 +308,7 @@ namespace KingdomGlobalLedger
             {
                 PointerClick(BarButton());
                 var pointer = new PointerEventData(EventSystem.current);
-                var blocker = Panel.GetComponent<UIBlocksZoom>(); blocker.OnPointerEnter(pointer);
+                var blocker = Panel.Frame.GetComponent<UIBlocksZoom>(); blocker.OnPointerEnter(pointer);
                 Check(UIBlocksZoom.Blocked, "Dropdown hover blocks workspace zoom"); blocker.OnPointerExit(pointer);
                 var canvas = BarButton().GetComponentInParent<Canvas>().rootCanvas;
                 canvas.scaleFactor = 1.5f;

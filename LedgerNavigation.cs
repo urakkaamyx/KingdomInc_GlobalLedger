@@ -20,6 +20,7 @@ namespace KingdomGlobalLedger
             if (target == null || !target.Exists || !WorldFlowManager.Instance || !GameUI.Instance) return false;
             int index = GamePlayer.Current.Flows.IndexOf(target.Flow);
             WorldFlowManager.Instance.ShowFlow(index);
+            if (WorldFlowCamera.Instance) WorldFlowCamera.Instance.RecalculateBounds();
             var view = target.View;
             if (!view || !Camera.main) return false;
             var center = view.TransformPoint(view.rect.center);
