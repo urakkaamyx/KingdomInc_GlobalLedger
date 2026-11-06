@@ -1,0 +1,26 @@
+0.1.2
+- Added the full Production tab matching the Currencies hierarchy: Item root
+  (<Item> - Net Production in /min) > Container > Building > Operating Costs
+  (icon-only rows for consumed input items in /min and spent currencies).
+- Sorted unlocked items on the Production tab by Tier (Tier 1-12) then A-Z,
+  hiding zero-activity items by default with a Show All toggle in the header.
+- Added a Collapse All button in the header bar to collapse all open roots,
+  containers, buildings, and operating cost groups on the active tab.
+- Added a dedicated right-aligned View button on live container and building
+  rows to jump to, center, and highlight the target without row clicks moving
+  the camera.
+- Updated container rows to show [ContainerIcon] | [ProductionIcon]
+  [ContainerName] using the native green container sprite alongside the
+  container's sticker or building production icon.
+- Stripped TextMeshPro rich-text tags (such as <size=...>) from container and
+  workspace labels.
+
+0.1.1
+- Grouped currency activity by overlapping container frame, Uncontained
+  workspace group, and Removed buildings.
+- Added container sticker icons, building product labels, two-decimal rates,
+  icon-only Operating Costs rows, and hover/focus highlights.
+
+0.1.0
+- Initial Global Ledger Mod Bar dropdown with rolling 60-second currency
+  accounting.

@@ -1,0 +1,32 @@
+[size=5][b]Global Ledger[/b][/size]
+
+Track live currency earnings, operating expenses, and item production across your entire kingdom from a dropdown on the top Mod Bar in Kingdom Inc.
+
+[b]Features[/b]
+[list]
+[*][b]Currencies tab:[/b] Shows every unlocked currency's rolling net rate ([b]Earned - Spent[/b] over the last 60 seconds). Gold is formatted in [b]g/min[/b] (1g = 100s = 10,000c); other currencies keep their native units. Expand a currency root to inspect containers, individual buildings, and [b]Operating Costs[/b] (icon-only currency rows formatted to two decimal places).[/*]
+[*][b]Production tab:[/b] Follows the same hierarchy for unlocked items, sorted by [b]Tier (Tier 1–12) -> A–Z[/b]. Displays each item's rolling net production rate ([b]Produced - Consumed[/b] in [b]/min[/b]). Items with zero activity in the last minute are hidden by default; click [b]Show All[/b] in the header bar to show or hide zero-activity unlocked items. Expand an item root to inspect containers, individual buildings, and [b]Operating Costs[/b] (both consumed input items in [b]/min[/b] and spent currencies as icon-only rows).[/*]
+[*][b]Container & workspace grouping:[/b] Container rows display [b][ContainerIcon] | [ProductionIcon] [ContainerName][/b] using the game's native green container icon, a [b]|[/b] separator, and the overlapping icon sticker nearest the frame's top-left corner (or its building's production icon when no sticker is placed), alongside the cleaned container name (with TextMeshPro tags such as <size> stripped). Nested or overlapping frames assign each building to the smallest frame once; buildings outside frames appear under their workspace's [b]Uncontained[/b] group.[/*]
+[*][b]Collapse All & independent expanders:[/b] Click any row or its left arrow to expand or collapse its children without moving the camera. Click [b]Collapse All[/b] in the header bar to collapse all open roots, containers, buildings, and operating cost sections on the active tab so you can drill down one level at a time.[/*]
+[*][b]Hover highlight & dedicated View button:[/b] Hovering a container or building row highlights the object in the current workspace without panning. Live container and building rows provide a right-aligned [b]View[/b] button that switches workspaces if needed, centers and highlights the target for five seconds, and closes the dropdown.[/*]
+[/list]
+
+[b]How the accounting works[/b]
+Rates reflect actual activity recorded in one-second buckets over the last 60 real elapsed seconds. During the first minute of observation, the header displays a collecting indicator and shows the accumulated sample without extrapolating short bursts. Pausing the game produces no new activity while older observations age out.
+
+Shop, Restaurant, Requisition Office, and Disenchanter collection-tray changes are combined with wallet credits so income is recognized when earned and collecting a tray never counts twice. Pure routing nodes and storage pass-throughs are excluded from item production and consumption. Deleted buildings retain their recorded observations under [b]Removed buildings[/b] until the 60-second window expires.
+
+[b]Requirements and installation[/b]
+1. Install the dependencies listed in this page's Requirements section ([b]BepInEx 5[/b] and [b]Foundation 0.6.0 or later[/b]).
+2. Close Kingdom Inc.
+3. Extract the ZIP into the game folder beside KingdomInc.exe.
+4. Confirm the file is at [b]BepInEx/plugins/GlobalLedger/GlobalLedger.dll[/b].
+5. Launch the game.
+
+[b]Saves and removal[/b]
+Accounting history is session-local and adds no custom buildings, research, or save data. Close the game and delete [b]BepInEx/plugins/GlobalLedger[/b] to remove the mod.
+
+[b]Credits and links[/b]
+By rockyamyx / Urakka. Native game frames, fonts, and icons are used from the installed game and are not redistributed. Generative AI was used for code, documentation, and promotional thumbnail artwork.
+[url=https://github.com/urakkaamyx/KingdomInc_GlobalLedger]Source and user guide on GitHub[/url]
+[url=https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases/tag/v0.1.2]GitHub release 0.1.2[/url]
