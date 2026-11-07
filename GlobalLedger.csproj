@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <Version>0.1.5</Version>
+    <Version>0.1.6</Version>
     <AssemblyName>GlobalLedger</AssemblyName>
     <GameRoot Condition="'$(GameRoot)' == ''">$(MSBuildThisFileDirectory)..\..\</GameRoot>
     <FoundationDll Condition="'$(FoundationDll)' == '' and Exists('$(MSBuildThisFileDirectory)..\Foundation\bin\Release\netstandard2.1\Foundation.dll')">$(MSBuildThisFileDirectory)..\Foundation\bin\Release\netstandard2.1\Foundation.dll</FoundationDll>

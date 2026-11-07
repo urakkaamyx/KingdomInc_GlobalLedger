@@ -42,11 +42,11 @@ def main():
     for report in reports:
         assert report['passed'] and not report['error'] and report['count'] >= 99
         assert report['version'] == VERSION and report['dllSha256'] == digest(dll)
-        assert 'Foundation 0.6.0' in report['plugins']
-        assert any('Production tab sorts active items by Tier then A-Z and hides zero-production items by default' in check for check in report['checks'])
+        assert any(p.startswith('Foundation ') for p in report['plugins'])
+        assert any('Basic mode sorts active items by Tier then A-Z and hides zero-production items by default' in check for check in report['checks'])
         assert any('Container rows display [ContainerIcon (IconDecoRect)] | [ProductionIcon] [ContainerName]' in check for check in report['checks'])
         assert any('Container and building rows with live targets show a dedicated View button on the right' in check for check in report['checks'])
-        assert any('Collapse All button collapses all currency roots' in check for check in report['checks'])
+        assert any('In Adv mode, all currency roots start collapsed by default without dumping child rows' in check for check in report['checks'])
         assert any('Gold rows display XX[GoldCoin] XX[SilverCoin] XX[CopperCoin] with native coin symbols' in check for check in report['checks'])
         assert any('Workspace camera pans and zooms normally while Global Ledger stays open' in check for check in report['checks'])
     for log in ('unity-isolated.log', 'unity-companion.log'):

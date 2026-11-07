@@ -1,3 +1,14 @@
+0.1.6
+- Added Basic / Adv mode toggle buttons in the top-right corner.
+  - Basic mode displays a streamlined overview of Currency Net Collection and
+    Item Net Production ([Icon] [Name] +/-XXX[icon] / {sec|min|hour}), with
+    items sorted by Tier -> A-Z.
+  - Adv mode retains the full hierarchical breakdown (Currency/Item > Container
+    > Building > Operating Costs) and defaults to everything collapsed.
+- Added [sec | min | hour] rate scaling toggle buttons in the header bar
+  (defaulting to min) so you can quickly inspect rates per second, minute,
+  or hour across all rows.
+
 0.1.5
 - Kept the Global Ledger dropdown open when clicking a View button so you can
   center and highlight buildings or containers without reopening the ledger.

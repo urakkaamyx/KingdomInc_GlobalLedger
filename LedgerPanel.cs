@@ -16,6 +16,9 @@ namespace KingdomGlobalLedger
 {
     public sealed class LedgerPanel : MonoBehaviour
     {
+        public enum ViewMode { Basic, Adv }
+        public enum TimeUnit { Sec, Min, Hour }
+
         public Action OnPopupClosed;
         LedgerBook book;
         LedgerUi ui;
@@ -23,23 +26,33 @@ namespace KingdomGlobalLedger
         RectTransform overlay, panel, content, viewport;
         TMP_Text status, footer;
         Button currencies, production, showAllButton, collapseAll;
+        Button basicButton, advButton, secButton, minButton, hourButton;
         ScrollRect scroll;
         readonly Vector3[] anchorCorners = new Vector3[4];
-        readonly HashSet<string> collapsed = new HashSet<string>();
+        readonly HashSet<string> expanded = new HashSet<string>();
         readonly List<TreeRow> rows = new List<TreeRow>();
         readonly LedgerLocations locations = new LedgerLocations();
         internal readonly List<RowData> VisibleRows = new List<RowData>();
         float nextRefresh, width, height;
         int tab;
         bool showAll;
+        ViewMode viewMode = ViewMode.Basic;
+        TimeUnit timeUnit = TimeUnit.Min;
         internal int SelectedTab => tab;
         internal bool ShowingAll => showAll;
+        internal ViewMode Mode => viewMode;
+        internal TimeUnit Unit => timeUnit;
         internal RectTransform Frame => panel;
         internal ScrollRect Scroller => scroll;
         internal Button CurrenciesButton => currencies;
         internal Button ProductionButton => production;
         internal Button ShowAllButton => showAllButton;
         internal Button CollapseAllButton => collapseAll;
+        internal Button BasicButton => basicButton;
+        internal Button AdvButton => advButton;
+        internal Button SecButton => secButton;
+        internal Button MinButton => minButton;
+        internal Button HourButton => hourButton;
 
         internal static LedgerPanel Create(LedgerBook book, Button anchor)
         {
@@ -81,6 +94,25 @@ namespace KingdomGlobalLedger
             var close = ui.Button(panel, "Close", "X", ClosePopup);
             close.GetComponent<RectTransform>().anchorMin = close.GetComponent<RectTransform>().anchorMax = new Vector2(1, 1);
             close.GetComponent<RectTransform>().pivot = new Vector2(1, 1); close.GetComponent<RectTransform>().anchoredPosition = new Vector2(-16, -14); close.GetComponent<RectTransform>().sizeDelta = new Vector2(36, 32);
+
+            basicButton = ui.Button(panel, "BasicMode", "Basic", () => SetViewMode(ViewMode.Basic));
+            var basicRect = (RectTransform)basicButton.transform;
+            basicRect.anchorMin = basicRect.anchorMax = new Vector2(1, 1);
+            basicRect.pivot = new Vector2(1, 1);
+            basicRect.anchoredPosition = new Vector2(-118, -14);
+            basicRect.sizeDelta = new Vector2(56, 32);
+
+            advButton = ui.Button(panel, "AdvMode", "Adv", () => SetViewMode(ViewMode.Adv));
+            var advRect = (RectTransform)advButton.transform;
+            advRect.anchorMin = advRect.anchorMax = new Vector2(1, 1);
+            advRect.pivot = new Vector2(1, 1);
+            advRect.anchoredPosition = new Vector2(-58, -14);
+            advRect.sizeDelta = new Vector2(54, 32);
+
+            secButton = ui.Button(panel, "UnitSec", "sec", () => SetTimeUnit(TimeUnit.Sec));
+            minButton = ui.Button(panel, "UnitMin", "min", () => SetTimeUnit(TimeUnit.Min));
+            hourButton = ui.Button(panel, "UnitHour", "hour", () => SetTimeUnit(TimeUnit.Hour));
+
             currencies = ui.Button(panel, "CurrenciesTab", "Currencies", () => SelectTab(0)); LedgerUi.Place((RectTransform)currencies.transform, 24, 56, 155, 38);
             production = ui.Button(panel, "ProductionTab", "Production", () => SelectTab(1)); LedgerUi.Place((RectTransform)production.transform, 187, 56, 155, 38);
             showAllButton = ui.Button(panel, "ShowAll", "Show All", ToggleShowAll); LedgerUi.Place((RectTransform)showAllButton.transform, 518, 56, 155, 38);
@@ -135,13 +167,45 @@ namespace KingdomGlobalLedger
             footer.rectTransform.sizeDelta = new Vector2(width - 48, 38);
             status.rectTransform.sizeDelta = new Vector2(width - 48, 25);
             float tabWidth = Mathf.Min(155, (width - 72) / 4);
-            LedgerUi.Place((RectTransform)currencies.transform, 24, 56, tabWidth, 38);
-            LedgerUi.Place((RectTransform)production.transform, 32 + tabWidth, 56, tabWidth, 38);
-            LedgerUi.Place((RectTransform)showAllButton.transform, width - 32 - tabWidth * 2, 56, tabWidth, 38);
-            LedgerUi.Place((RectTransform)collapseAll.transform, width - 24 - tabWidth, 56, tabWidth, 38);
+            bool isAdv = viewMode == ViewMode.Adv;
+            currencies.gameObject.SetActive(isAdv);
+            production.gameObject.SetActive(isAdv);
+            collapseAll.gameObject.SetActive(isAdv);
+            if (isAdv)
+            {
+                LedgerUi.Place((RectTransform)currencies.transform, 24, 56, tabWidth, 38);
+                LedgerUi.Place((RectTransform)production.transform, 32 + tabWidth, 56, tabWidth, 38);
+                LedgerUi.Place((RectTransform)showAllButton.transform, width - 32 - tabWidth * 2, 56, tabWidth, 38);
+                LedgerUi.Place((RectTransform)collapseAll.transform, width - 24 - tabWidth, 56, tabWidth, 38);
+            }
+            else
+            {
+                LedgerUi.Place((RectTransform)showAllButton.transform, width - 24 - tabWidth, 56, tabWidth, 38);
+            }
+
+            float unitW = 50;
+            float unitX = (width - (unitW * 3 + 8)) / 2;
+            LedgerUi.Place((RectTransform)secButton.transform, unitX, 59, unitW, 32);
+            LedgerUi.Place((RectTransform)minButton.transform, unitX + unitW + 4, 59, unitW, 32);
+            LedgerUi.Place((RectTransform)hourButton.transform, unitX + (unitW + 4) * 2, 59, unitW + 4, 32);
             for (int i = 0; i < rows.Count; i++) rows[i].Layout(width - 60);
         }
-        internal void ResetTree() { collapsed.Clear(); showAll = false; locations.Reset(); scroll.verticalNormalizedPosition = 1; }
+        internal void SetViewMode(ViewMode mode)
+        {
+            if (viewMode == mode) return;
+            viewMode = mode;
+            Fit();
+            scroll.StopMovement();
+            content.anchoredPosition = Vector2.zero;
+            RefreshNow();
+        }
+        internal void SetTimeUnit(TimeUnit unit)
+        {
+            if (timeUnit == unit) return;
+            timeUnit = unit;
+            RefreshNow();
+        }
+        internal void ResetTree() { expanded.Clear(); showAll = false; locations.Reset(); scroll.verticalNormalizedPosition = 1; }
         internal void ToggleShowAll()
         {
             showAll = !showAll;
@@ -149,54 +213,7 @@ namespace KingdomGlobalLedger
         }
         internal void CollapseAll()
         {
-            if (GamePlayer.Current != null)
-            {
-                var data = locations.Resolve(book.Snapshot());
-                if (tab == 0)
-                {
-                    foreach (Currency currency in Enum.GetValues(typeof(Currency)))
-                    {
-                        if (!currency.IsUnlocked()) continue;
-                        int c = (int)currency;
-                        string root = "currency/" + c;
-                        collapsed.Add(root);
-                        foreach (var group in data.Where(t => t.Totals.Active(c)).GroupBy(t => t.GroupKey))
-                        {
-                            string groupKey = root + "/" + group.Key;
-                            collapsed.Add(groupKey);
-                            foreach (var entry in group)
-                            {
-                                string buildingKey = groupKey + "/" + entry.Totals.Source.Id;
-                                collapsed.Add(buildingKey);
-                                collapsed.Add(buildingKey + "/costs");
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var item in ItemType.Unlocked)
-                    {
-                        string id = item.Identifier;
-                        if (id == "dummy_passthrough") continue;
-                        string root = "item/" + id;
-                        collapsed.Add(root);
-                        foreach (var group in data.Where(t => t.Totals.ItemActive(id)).GroupBy(t => t.GroupKey))
-                        {
-                            string groupKey = root + "/" + group.Key;
-                            collapsed.Add(groupKey);
-                            foreach (var entry in group)
-                            {
-                                string buildingKey = groupKey + "/" + entry.Totals.Source.Id;
-                                collapsed.Add(buildingKey);
-                                collapsed.Add(buildingKey + "/costs");
-                            }
-                        }
-                    }
-                }
-            }
-            foreach (var row in VisibleRows)
-                if (row.Expandable) collapsed.Add(row.Key);
+            expanded.Clear();
             scroll.StopMovement();
             content.anchoredPosition = Vector2.zero;
             RefreshNow();
@@ -207,7 +224,7 @@ namespace KingdomGlobalLedger
         }
         internal void ToggleRow(string key)
         {
-            if (!collapsed.Add(key)) collapsed.Remove(key);
+            if (!expanded.Add(key)) expanded.Remove(key);
             RefreshNow();
         }
         void Activate(RowData row)
@@ -222,11 +239,25 @@ namespace KingdomGlobalLedger
         {
             nextRefresh = Time.unscaledTime + .5f;
             VisibleRows.Clear();
+            basicButton.GetComponentInChildren<TMP_Text>().color = viewMode == ViewMode.Basic ? LedgerUi.Gold : LedgerUi.Paper;
+            advButton.GetComponentInChildren<TMP_Text>().color = viewMode == ViewMode.Adv ? LedgerUi.Gold : LedgerUi.Paper;
+            secButton.GetComponentInChildren<TMP_Text>().color = timeUnit == TimeUnit.Sec ? LedgerUi.Gold : LedgerUi.Paper;
+            minButton.GetComponentInChildren<TMP_Text>().color = timeUnit == TimeUnit.Min ? LedgerUi.Gold : LedgerUi.Paper;
+            hourButton.GetComponentInChildren<TMP_Text>().color = timeUnit == TimeUnit.Hour ? LedgerUi.Gold : LedgerUi.Paper;
+
             currencies.GetComponentInChildren<TMP_Text>().color = tab == 0 ? LedgerUi.Gold : LedgerUi.Paper;
             production.GetComponentInChildren<TMP_Text>().color = tab == 1 ? LedgerUi.Gold : LedgerUi.Paper;
             showAllButton.GetComponentInChildren<TMP_Text>().color = showAll ? LedgerUi.Gold : LedgerUi.Paper;
-            status.text = "All workspaces  |  Last 60 seconds" + (book.Elapsed < 60 ? "  |  Collecting " + Math.Floor(book.Elapsed) + "/60s" : "");
-            if (tab == 0)
+
+            string rateUnitStr = timeUnit == TimeUnit.Sec ? "second" : timeUnit == TimeUnit.Min ? "minute" : "hour";
+            status.text = "All workspaces  |  Last 60 seconds (Rates: per " + rateUnitStr + ")" + (book.Elapsed < 60 ? "  |  Collecting " + Math.Floor(book.Elapsed) + "/60s" : "");
+
+            if (viewMode == ViewMode.Basic)
+            {
+                footer.text = "Basic mode: Net collection summary across all workspaces. Click Adv for container and building breakdowns.";
+                BuildBasic();
+            }
+            else if (tab == 0)
             {
                 footer.text = "Hover to highlight. Click a row to expand/collapse; click View to center it.\nLast-minute building activity; currencies stay separate. Session history only.";
                 BuildCurrencies();
@@ -244,6 +275,53 @@ namespace KingdomGlobalLedger
             for (int i = VisibleRows.Count; i < rows.Count; i++) rows[i].Root.gameObject.SetActive(false);
             content.sizeDelta = new Vector2(0, VisibleRows.Count * 36 + 8);
         }
+        void BuildBasic()
+        {
+            if (GamePlayer.Current == null) return;
+            var data = locations.Resolve(book.Snapshot());
+
+            // Section 1: CURRENCIES
+            VisibleRows.Add(new RowData("basic/header/currencies", "CURRENCY NET COLLECTION", 0) { IsHeader = true });
+            foreach (Currency currency in Enum.GetValues(typeof(Currency)))
+            {
+                if (!currency.IsUnlocked()) continue;
+                int c = (int)currency;
+                long net = data.Where(t => t.Totals.Active(c)).Sum(t => t.Totals.Net(c));
+                var row = new RowData("basic/currency/" + c, LedgerUi.CurrencyName(currency), 1)
+                {
+                    Currency = currency,
+                    Amount = net,
+                    Expandable = false,
+                    Icon = currency.GetIcon()
+                };
+                VisibleRows.Add(row);
+            }
+
+            // Section 2: PRODUCTION
+            VisibleRows.Add(new RowData("basic/header/production", "ITEM NET PRODUCTION", 0) { IsHeader = true });
+            var items = LedgerUi.OrderedUnlockedItems();
+            int count = 0;
+            foreach (var item in items)
+            {
+                string id = item.Identifier;
+                var active = data.Where(t => t.Totals.ItemActive(id)).ToArray();
+                if (!showAll && active.Length == 0) continue;
+                long net = active.Sum(t => t.Totals.ItemNet(id));
+                var row = new RowData("basic/item/" + id, LedgerUi.ItemName(item), 1)
+                {
+                    Item = item,
+                    Amount = net,
+                    Expandable = false,
+                    Icon = item.GetIcon()
+                };
+                VisibleRows.Add(row);
+                count++;
+            }
+            if (count == 0 && !showAll)
+            {
+                VisibleRows.Add(new RowData("basic/item/empty", "No observed production in the last minute. Click Show All to list unlocked items.", 1));
+            }
+        }
         void BuildCurrencies()
         {
             if (GamePlayer.Current == null) return;
@@ -255,7 +333,7 @@ namespace KingdomGlobalLedger
                 string root = "currency/" + c;
                 var active = data.Where(t => t.Totals.Active(c)).ToArray();
                 Add(root, LedgerUi.CurrencyName(currency) + " - Net Earnings", 0, currency, active.Sum(t => t.Totals.Net(c)), true);
-                if (collapsed.Contains(root)) continue;
+                if (!expanded.Contains(root)) continue;
                 if (active.Length == 0) { VisibleRows.Add(new RowData(root + "/empty", "No observed activity in the last minute.", 1)); continue; }
                 foreach (var group in active.GroupBy(t => t.GroupKey).OrderBy(g => g.First().GroupName, StringComparer.CurrentCulture).ThenBy(g => g.Key, StringComparer.Ordinal))
                 {
@@ -264,17 +342,17 @@ namespace KingdomGlobalLedger
                     var containerRow = Add(groupKey, container.GroupName, 1, currency, group.Sum(t => t.Totals.Net(c)), true);
                     containerRow.PrefixIcon = container.GroupTarget != null ? LedgerLocations.ContainerIcon() : null;
                     containerRow.Icon = container.GroupIcon; containerRow.Target = container.GroupTarget;
-                    if (collapsed.Contains(groupKey)) continue;
+                    if (!expanded.Contains(groupKey)) continue;
                     foreach (var entry in group.OrderBy(t => t.BuildingName, StringComparer.CurrentCulture).ThenBy(t => t.Totals.Source.Id, StringComparer.Ordinal))
                     {
                         var building = entry.Totals;
                         string buildingKey = groupKey + "/" + building.Source.Id;
                         var buildingRow = Add(buildingKey, entry.BuildingName, 2, currency, building.Net(c), true);
                         buildingRow.Icon = entry.BuildingIcon; buildingRow.Target = entry.BuildingTarget;
-                        if (collapsed.Contains(buildingKey)) continue;
+                        if (!expanded.Contains(buildingKey)) continue;
                         string costs = buildingKey + "/costs";
-                        VisibleRows.Add(new RowData(costs, "Operating Costs", 3) { Expandable = true, Open = !collapsed.Contains(costs) });
-                        if (collapsed.Contains(costs)) continue;
+                        VisibleRows.Add(new RowData(costs, "Operating Costs", 3) { Expandable = true, Open = expanded.Contains(costs) });
+                        if (!expanded.Contains(costs)) continue;
                         bool any = false;
                         foreach (Currency costCurrency in Enum.GetValues(typeof(Currency)))
                             if (building.Spent[(int)costCurrency] != 0 && costCurrency.IsUnlocked())
@@ -298,7 +376,7 @@ namespace KingdomGlobalLedger
                 var active = data.Where(t => t.Totals.ItemActive(id)).ToArray();
                 if (!showAll && active.Length == 0) continue;
                 AddItem(root, LedgerUi.ItemName(item) + " - Net Production", 0, item, active.Sum(t => t.Totals.ItemNet(id)), true);
-                if (collapsed.Contains(root)) continue;
+                if (!expanded.Contains(root)) continue;
                 if (active.Length == 0) { VisibleRows.Add(new RowData(root + "/empty", "No observed activity in the last minute.", 1)); continue; }
                 foreach (var group in active.GroupBy(t => t.GroupKey).OrderBy(g => g.First().GroupName, StringComparer.CurrentCulture).ThenBy(g => g.Key, StringComparer.Ordinal))
                 {
@@ -307,17 +385,17 @@ namespace KingdomGlobalLedger
                     var containerRow = AddItem(groupKey, container.GroupName, 1, item, group.Sum(t => t.Totals.ItemNet(id)), true);
                     containerRow.PrefixIcon = container.GroupTarget != null ? LedgerLocations.ContainerIcon() : null;
                     containerRow.Icon = container.GroupIcon; containerRow.Target = container.GroupTarget;
-                    if (collapsed.Contains(groupKey)) continue;
+                    if (!expanded.Contains(groupKey)) continue;
                     foreach (var entry in group.OrderBy(t => t.BuildingName, StringComparer.CurrentCulture).ThenBy(t => t.Totals.Source.Id, StringComparer.Ordinal))
                     {
                         var building = entry.Totals;
                         string buildingKey = groupKey + "/" + building.Source.Id;
                         var buildingRow = AddItem(buildingKey, entry.BuildingName, 2, item, building.ItemNet(id), true);
                         buildingRow.Icon = entry.BuildingIcon; buildingRow.Target = entry.BuildingTarget;
-                        if (collapsed.Contains(buildingKey)) continue;
+                        if (!expanded.Contains(buildingKey)) continue;
                         string costs = buildingKey + "/costs";
-                        VisibleRows.Add(new RowData(costs, "Operating Costs", 3) { Expandable = true, Open = !collapsed.Contains(costs) });
-                        if (collapsed.Contains(costs)) continue;
+                        VisibleRows.Add(new RowData(costs, "Operating Costs", 3) { Expandable = true, Open = expanded.Contains(costs) });
+                        if (!expanded.Contains(costs)) continue;
                         bool any = false;
                         foreach (var costItem in LedgerUi.OrderedUnlockedItems())
                         {
@@ -343,12 +421,12 @@ namespace KingdomGlobalLedger
         }
         RowData Add(string key, string label, int depth, Currency currency, long amount, bool expandable)
         {
-            var row = new RowData(key, label, depth) { Currency = currency, Amount = amount, Expandable = expandable, Open = !collapsed.Contains(key), Icon = depth == 0 ? currency.GetIcon() : null };
+            var row = new RowData(key, label, depth) { Currency = currency, Amount = amount, Expandable = expandable, Open = expanded.Contains(key), Icon = depth == 0 ? currency.GetIcon() : null };
             VisibleRows.Add(row); return row;
         }
         RowData AddItem(string key, string label, int depth, ItemType item, long amount, bool expandable)
         {
-            var row = new RowData(key, label, depth) { Item = item, Amount = amount, Expandable = expandable, Open = !collapsed.Contains(key), Icon = depth == 0 ? item.GetIcon() : null };
+            var row = new RowData(key, label, depth) { Item = item, Amount = amount, Expandable = expandable, Open = expanded.Contains(key), Icon = depth == 0 ? item.GetIcon() : null };
             VisibleRows.Add(row); return row;
         }
         internal sealed class RowData
@@ -359,7 +437,7 @@ namespace KingdomGlobalLedger
             internal ItemType Item;
             internal long Amount;
             internal bool Expandable, Open;
-            internal bool IconOnly;
+            internal bool IconOnly, IsHeader;
             internal Sprite PrefixIcon, Icon;
             internal LedgerTarget Target;
             internal RowData(string key, string label, int depth) { Key = key; Label = label; Depth = depth; }
@@ -368,16 +446,18 @@ namespace KingdomGlobalLedger
         {
             internal readonly RectTransform Root;
             internal readonly Button Button, ViewButton;
-            readonly TMP_Text label, amount, arrow, separator, goldText, silverText, copperText;
+            readonly TMP_Text label, amount, arrow, separator, goldText, silverText, copperText, goldUnit;
             readonly RectTransform goldGroup;
             readonly Image goldCoin, silverCoin, copperCoin;
             readonly Button expander;
             readonly LedgerRowHover hover;
             readonly Image prefixIcon, icon, shade;
             readonly int index;
+            readonly LedgerPanel owner;
             RowData data;
             internal TreeRow(LedgerPanel owner, LedgerUi ui, Transform parent, int index)
             {
+                this.owner = owner;
                 this.index = index;
                 Root = LedgerUi.Rect(parent, "TreeRow" + index);
                 shade = ui.Background(Root, Color.clear);
@@ -406,6 +486,7 @@ namespace KingdomGlobalLedger
                 goldText = CoinText(ui, goldGroup, "GoldAmount"); goldCoin = CoinIcon(goldGroup, "GoldCoin");
                 silverText = CoinText(ui, goldGroup, "SilverAmount"); silverCoin = CoinIcon(goldGroup, "SilverCoin");
                 copperText = CoinText(ui, goldGroup, "CopperAmount"); copperCoin = CoinIcon(goldGroup, "CopperCoin");
+                goldUnit = ui.Text(goldGroup, "GoldUnit", "", 13); goldUnit.color = LedgerUi.Muted; goldUnit.alignment = TextAlignmentOptions.MidlineLeft;
                 ViewButton = ui.Button(Root, "View", "View", () => { if (data?.Target != null) owner.View(data); }, 14);
             }
             static TMP_Text CoinText(LedgerUi ui, Transform parent, string name)
@@ -435,6 +516,18 @@ namespace KingdomGlobalLedger
             {
                 if (data == null) return;
                 LedgerUi.Place(Root, 0, index * 36, width, 35);
+                if (data.IsHeader)
+                {
+                    expander.gameObject.SetActive(false);
+                    ViewButton.gameObject.SetActive(false);
+                    amount.gameObject.SetActive(false);
+                    goldGroup.gameObject.SetActive(false);
+                    prefixIcon.enabled = false;
+                    separator.text = "";
+                    icon.enabled = false;
+                    LedgerUi.Place(label.rectTransform, 24, 0, width - 48, 35);
+                    return;
+                }
                 float left = 12 + data.Depth * 24;
                 LedgerUi.Place((RectTransform)expander.transform, left - 3, 0, 24, 35);
                 float textLeft;
@@ -450,13 +543,16 @@ namespace KingdomGlobalLedger
                     LedgerUi.Place((RectTransform)icon.transform, left + 22, 8, 20, 20);
                     textLeft = left + (data.Icon ? 48 : 24);
                 }
-                float rightReserve = data.Currency.HasValue || data.Item != null ? 264 : data.Target != null ? 74 : 16;
+                float rightReserve = data.Currency.HasValue || data.Item != null ? 300 : data.Target != null ? 74 : 16;
                 LedgerUi.Place(label.rectTransform, textLeft, 0, Mathf.Max(24, width - textLeft - rightReserve), 35);
-                LedgerUi.Place(amount.rectTransform, Mathf.Max(0, width - 216), 0, 142, 35);
-                LedgerUi.Place(goldGroup, Mathf.Max(0, width - 256), 0, 182, 35);
+                LedgerUi.Place(amount.rectTransform, Mathf.Max(0, width - 250), 0, 180, 35);
+                LedgerUi.Place(goldGroup, Mathf.Max(0, width - 300), 0, 240, 35);
                 if (data.Currency == Currency.Gold)
                 {
-                    float cursor = 182;
+                    float cursor = 240;
+                    float unitW = Mathf.Ceil(goldUnit.GetPreferredValues(goldUnit.text).x) + 4;
+                    LedgerUi.Place(goldUnit.rectTransform, cursor - unitW, 0, unitW, 35);
+                    cursor -= unitW;
                     PlaceCoinPair(copperText, copperCoin, ref cursor, 0);
                     PlaceCoinPair(silverText, silverCoin, ref cursor, 7);
                     PlaceCoinPair(goldText, goldCoin, ref cursor, 7);
@@ -466,6 +562,24 @@ namespace KingdomGlobalLedger
             internal void Bind(RowData value, float width)
             {
                 data = value; Root.name = value.Key; Root.gameObject.SetActive(true);
+                if (value.IsHeader)
+                {
+                    expander.gameObject.SetActive(false);
+                    ViewButton.gameObject.SetActive(false);
+                    hover.Bind(null);
+                    label.text = value.Label;
+                    label.color = LedgerUi.Gold;
+                    label.fontStyle = FontStyles.Bold;
+                    shade.color = new Color(.28f, .16f, .10f, .85f);
+                    amount.gameObject.SetActive(false);
+                    goldGroup.gameObject.SetActive(false);
+                    prefixIcon.enabled = false;
+                    separator.text = "";
+                    icon.enabled = false;
+                    Layout(width);
+                    return;
+                }
+                label.fontStyle = FontStyles.Normal;
                 arrow.text = value.Expandable ? (value.Open ? "v" : ">") : "";
                 expander.gameObject.SetActive(value.Expandable);
                 ViewButton.gameObject.SetActive(value.Target != null);
@@ -475,17 +589,18 @@ namespace KingdomGlobalLedger
                 shade.color = value.Depth == 0 ? new Color(.35f, .22f, .13f, .7f) : new Color(0, 0, 0, index % 2 == 0 ? .13f : .03f);
                 Color rateColor = value.Amount > 0 ? LedgerUi.Gain : value.Amount < 0 ? LedgerUi.Loss : LedgerUi.Muted;
                 bool isGold = value.Currency == Currency.Gold;
-                amount.text = value.Currency.HasValue ? LedgerUi.Rate(value.Amount, value.Currency.Value) : value.Item != null ? LedgerUi.ItemRate(value.Amount) : "";
+                amount.text = value.Currency.HasValue ? LedgerUi.Rate(value.Amount, value.Currency.Value, owner.Unit) : value.Item != null ? LedgerUi.ItemRate(value.Amount, owner.Unit) : "";
                 amount.color = rateColor;
-                amount.gameObject.SetActive(!isGold);
+                amount.gameObject.SetActive(!isGold && (value.Currency.HasValue || value.Item != null));
                 goldGroup.gameObject.SetActive(isGold);
                 if (isGold)
                 {
-                    var (sign, g, s, c) = LedgerUi.SplitGold(value.Amount);
+                    var (sign, g, s, c) = LedgerUi.SplitGoldScaled(value.Amount, owner.Unit);
                     goldText.text = sign + g.ToString("#,0", CultureInfo.InvariantCulture);
                     silverText.text = s.ToString(CultureInfo.InvariantCulture);
                     copperText.text = c.ToString(CultureInfo.InvariantCulture);
                     goldText.color = silverText.color = copperText.color = rateColor;
+                    goldUnit.text = LedgerUi.TimeUnitSuffix(owner.Unit);
                     goldCoin.sprite = LedgerUi.GoldCoin(); goldCoin.enabled = goldCoin.sprite;
                     silverCoin.sprite = LedgerUi.SilverCoin(); silverCoin.enabled = silverCoin.sprite;
                     copperCoin.sprite = LedgerUi.CopperCoin(); copperCoin.enabled = copperCoin.sprite;

@@ -121,20 +121,44 @@ namespace KingdomGlobalLedger
             long abs = Math.Abs(value);
             return (sign, abs / 10000, (abs / 100) % 100, abs % 100);
         }
-        internal static string Rate(long value, Currency currency)
+        internal static string TimeUnitSuffix(LedgerPanel.TimeUnit unit)
+        {
+            switch (unit)
+            {
+                case LedgerPanel.TimeUnit.Sec: return "/sec";
+                case LedgerPanel.TimeUnit.Hour: return "/hour";
+                default: return "/min";
+            }
+        }
+        internal static double ScaleRate(long value, LedgerPanel.TimeUnit unit)
+        {
+            switch (unit)
+            {
+                case LedgerPanel.TimeUnit.Sec: return value / 60.0;
+                case LedgerPanel.TimeUnit.Hour: return value * 60.0;
+                default: return value;
+            }
+        }
+        internal static (string Sign, long Gold, long Silver, long Copper) SplitGoldScaled(long value, LedgerPanel.TimeUnit unit)
+        {
+            long scaled = unit == LedgerPanel.TimeUnit.Sec ? (long)Math.Round(value / 60.0) : unit == LedgerPanel.TimeUnit.Hour ? value * 60 : value;
+            return SplitGold(scaled);
+        }
+        internal static string Rate(long value, Currency currency, LedgerPanel.TimeUnit unit = LedgerPanel.TimeUnit.Min)
         {
             if (currency == Currency.Gold)
             {
-                var (sign, gold, silver, copper) = SplitGold(value);
-                return sign + gold.ToString("#,0", CultureInfo.InvariantCulture) + "g " + silver + "s " + copper + "c";
+                var (sign, gold, silver, copper) = SplitGoldScaled(value, unit);
+                string suffix = unit == LedgerPanel.TimeUnit.Min ? "" : " " + TimeUnitSuffix(unit);
+                return sign + gold.ToString("#,0", CultureInfo.InvariantCulture) + "g " + silver + "s " + copper + "c" + suffix;
             }
-            decimal amount = decimal.Round((decimal)value, 2, MidpointRounding.AwayFromZero);
-            return (amount > 0 ? "+" : "") + amount.ToString("0.00", CultureInfo.InvariantCulture) + "/min";
+            double amount = Math.Round(ScaleRate(value, unit), 2, MidpointRounding.AwayFromZero);
+            return (amount > 0 ? "+" : "") + amount.ToString("0.00", CultureInfo.InvariantCulture) + TimeUnitSuffix(unit);
         }
-        internal static string ItemRate(long value)
+        internal static string ItemRate(long value, LedgerPanel.TimeUnit unit = LedgerPanel.TimeUnit.Min)
         {
-            decimal amount = decimal.Round((decimal)value, 2, MidpointRounding.AwayFromZero);
-            return (amount > 0 ? "+" : "") + amount.ToString("0.00", CultureInfo.InvariantCulture) + "/min";
+            double amount = Math.Round(ScaleRate(value, unit), 2, MidpointRounding.AwayFromZero);
+            return (amount > 0 ? "+" : "") + amount.ToString("0.00", CultureInfo.InvariantCulture) + TimeUnitSuffix(unit);
         }
     }
 }

@@ -15,6 +15,11 @@ namespace KingdomGlobalLedger
     {
         IEnumerator VerifyNavigation(Mine mineA, Mine mineB, Mine remoteMine, FlowDeco foundry, FlowDeco remoteContainer, string directory)
         {
+                if (Panel.Mode != LedgerPanel.ViewMode.Adv) { PointerClick(Panel.AdvButton); yield return null; }
+                if (Panel.SelectedTab != 0) { PointerClick(Panel.CurrenciesButton); yield return null; }
+                if (!Panel.VisibleRows.Any(r => r.Key.StartsWith("currency/0/"))) { PointerClick(RowButton("currency/0")); yield return null; }
+                var initialFrame = ContainerRow(foundry);
+                if (!initialFrame.Open) { PointerClick(RowButton(initialFrame.Key)); yield return null; }
                 var mineRow = BuildingRow(mineA); RevealRow(mineRow.Key);
                 var hoverEvent = new PointerEventData(EventSystem.current);
                 var camera = Camera.main; var beforeHover = camera.transform.position;
@@ -54,6 +59,8 @@ namespace KingdomGlobalLedger
                 var beforeMove = Book.Snapshot().Sum(t => t.Net(0));
                 var originalPosition = foundry.Position;
                 foundry.Position += new Vector2Int(4000, 0); Panel.RefreshNow();
+                var uncontained = Panel.VisibleRows.FirstOrDefault(r => r.Key.StartsWith("currency/0/uncontained"));
+                if (uncontained != null && !uncontained.Open) { PointerClick(RowButton(uncontained.Key)); yield return null; }
                 Check(BuildingRow(mineA).Key.Contains("uncontained/") && Panel.VisibleRows.Single(r => r.Key == "currency/0").Amount == beforeMove,
                     "Moving a container updates membership without losing or double-counting historical amounts");
                 foundry.Position = originalPosition; Panel.RefreshNow();
@@ -63,11 +70,16 @@ namespace KingdomGlobalLedger
                     "Overlapping containers choose the smallest frame and list each building once");
                 GamePlayer.Current.ActiveFlow.Decorations.Remove(outer);
                 GamePlayer.Current.ActiveFlow.Elements.Remove(mineB); Panel.RefreshNow();
+                var removedGroup = Panel.VisibleRows.FirstOrDefault(r => r.Key.StartsWith("currency/0/removed"));
+                if (removedGroup != null && !removedGroup.Open) { PointerClick(RowButton(removedGroup.Key)); yield return null; }
                 var removedBuildingRow = Panel.VisibleRows.SingleOrDefault(r => r.Key.StartsWith("currency/0/removed/") && r.Target == null && r.Depth == 2);
                 Check(removedBuildingRow != null && !RowView(removedBuildingRow.Key).gameObject.activeSelf,
                     "Removed buildings retain their recent activity and hide the View button");
                 GamePlayer.Current.ActiveFlow.Elements.Add(mineB); Panel.RefreshNow();
                 remoteMine.UpdateUpgrades(); remoteMine.DoManualCraft(); Panel.RefreshNow();
+                var remoteContainerRow = ContainerRow(remoteContainer);
+                RevealRow(remoteContainerRow.Key);
+                if (!remoteContainerRow.Open) { PointerClick(RowButton(remoteContainerRow.Key)); yield return null; }
                 var remoteRow = BuildingRow(remoteMine); RevealRow(remoteRow.Key);
                 yield return null;
                 beforeHover = camera.transform.position;

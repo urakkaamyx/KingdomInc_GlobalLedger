@@ -46,9 +46,37 @@ namespace KingdomGlobalLedger
         }
         LedgerPanel.RowData BuildingRow(FlowElement building, string prefix = "currency/0/") => Panel.VisibleRows.Single(r => r.Target?.Building == building && r.Key.StartsWith(prefix));
         LedgerPanel.RowData ContainerRow(FlowDeco container, string prefix = "currency/0/") => Panel.VisibleRows.Single(r => r.Target?.Container == container && r.Key.StartsWith(prefix));
+        static void UpdateCanvasBatches()
+        {
+            var camera = Camera.main;
+            if (!camera) return;
+            var overlays = FindObjectsByType<Canvas>(FindObjectsSortMode.None).Where(c => c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay).ToArray();
+            var target = RenderTexture.GetTemporary(16, 16, 16);
+            var prevActive = RenderTexture.active;
+            var prevTarget = camera.targetTexture;
+            int prevMask = camera.cullingMask;
+            try
+            {
+                foreach (var canvas in overlays) { canvas.renderMode = RenderMode.ScreenSpaceCamera; canvas.worldCamera = camera; canvas.planeDistance = 10; }
+                camera.cullingMask = 0;
+                camera.targetTexture = target;
+                Canvas.ForceUpdateCanvases();
+                camera.Render();
+            }
+            finally
+            {
+                camera.targetTexture = prevTarget;
+                camera.cullingMask = prevMask;
+                foreach (var canvas in overlays) { canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.worldCamera = null; }
+                Canvas.ForceUpdateCanvases();
+                RenderTexture.active = prevActive;
+                RenderTexture.ReleaseTemporary(target);
+            }
+        }
         void PointerClick(Button button)
         {
             Canvas.ForceUpdateCanvases();
+            if (button.targetGraphic && button.targetGraphic.depth == -1) UpdateCanvasBatches();
             var canvas = button.GetComponentInParent<Canvas>().rootCanvas;
             Camera camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
             Vector2 position = RectTransformUtility.WorldToScreenPoint(camera, button.transform.TransformPoint(((RectTransform)button.transform).rect.center));
@@ -106,8 +134,12 @@ namespace KingdomGlobalLedger
                 testBook.Reset(); Check(testBook.Snapshot().Count == 0, "Reset clears session observations");
                 Check(LedgerUi.Rate(-12345, Currency.Gold) == "-1g 23s 45c" && LedgerUi.Rate(3, Currency.Mana) == "+3.00/min"
                     && LedgerUi.Rate(-1, Currency.Gold) == "-0g 0s 1c" && LedgerUi.Rate(0, Currency.Gold) == "0g 0s 0c"
-                    && LedgerUi.ItemRate(3) == "+3.00/min" && LedgerUi.ItemRate(-2) == "-2.00/min" && LedgerUi.ItemRate(0) == "0.00/min",
-                    "Gold rates use exact XXg XXs XXc denominations and other rates use two decimals");
+                    && LedgerUi.ItemRate(3) == "+3.00/min" && LedgerUi.ItemRate(-2) == "-2.00/min" && LedgerUi.ItemRate(0) == "0.00/min"
+                    && LedgerUi.Rate(3, Currency.Mana, LedgerPanel.TimeUnit.Sec) == "+0.05/sec"
+                    && LedgerUi.Rate(3, Currency.Mana, LedgerPanel.TimeUnit.Hour) == "+180.00/hour"
+                    && LedgerUi.ItemRate(3, LedgerPanel.TimeUnit.Sec) == "+0.05/sec"
+                    && LedgerUi.ItemRate(3, LedgerPanel.TimeUnit.Hour) == "+180.00/hour",
+                    "Gold rates use exact XXg XXs XXc denominations and other rates use two decimals with sec/min/hour scaling");
                 Check(LedgerLocations.CleanLabel("<size=48>01  FOREST DEFENSE</size>") == "01  FOREST DEFENSE",
                     "Container label cleaner strips rich-text size tags");
                 var player = GamePlayer.CreateNewPlayer(); player.Flows[0].Elements.Clear(); player.Flows[0].Label = "Ironworks";
@@ -185,7 +217,51 @@ namespace KingdomGlobalLedger
                 Check(Book.Snapshot().Sum(t => t.Net(0)) == before, "Non-building purchases and spending do not become operating costs");
                 PointerClick(BarButton());
                 Check(Panel && Panel.gameObject.activeSelf, "Foundation button opens the dropdown panel");
-                Check(Panel.VisibleRows.Count(r => r.Depth == 0) == 3 && !Panel.VisibleRows.Any(r => r.Key == "currency/3"), "Only Gold, Requisition and Mana roots are visible; locked Rings stay hidden");
+                Check(Panel.Mode == LedgerPanel.ViewMode.Basic && Panel.Unit == LedgerPanel.TimeUnit.Min,
+                    "Dropdown opens in Basic mode with minute rate scaling by default");
+                Check(Panel.VisibleRows.Any(r => r.Key == "basic/header/currencies" && r.IsHeader) && Panel.VisibleRows.Any(r => r.Key == "basic/header/production" && r.IsHeader),
+                    "Basic mode displays separate section headers for Currency Net Collection and Item Net Production");
+                Check(Panel.VisibleRows.Count(r => r.Currency.HasValue) == 3 && !Panel.VisibleRows.Any(r => r.Key == "basic/currency/3"),
+                    "Only Gold, Requisition and Mana roots are visible in Basic mode; locked Rings stay hidden");
+                var basicGold = Panel.VisibleRows.Single(r => r.Key == "basic/currency/0");
+                Check(basicGold.Amount == Book.Snapshot().Sum(t => t.Net(0)), "Basic Gold net reconciles with the individual building nets");
+                var basicGoldRate = RowButton("basic/currency/0").transform.Find("GoldRate");
+                var (basicGoldSign, basicGoldG, basicGoldS, basicGoldC) = LedgerUi.SplitGold(basicGold.Amount);
+                Check(basicGoldRate.gameObject.activeSelf && !RowButton("basic/currency/0").transform.Find("Rate").gameObject.activeSelf
+                    && basicGoldRate.Find("GoldAmount").GetComponent<TMP_Text>().text == basicGoldSign + basicGoldG
+                    && basicGoldRate.Find("SilverAmount").GetComponent<TMP_Text>().text == basicGoldS.ToString()
+                    && basicGoldRate.Find("CopperAmount").GetComponent<TMP_Text>().text == basicGoldC.ToString()
+                    && basicGoldRate.Find("GoldCoin").GetComponent<Image>().sprite == LedgerUi.GoldCoin()
+                    && basicGoldRate.Find("SilverCoin").GetComponent<Image>().sprite == LedgerUi.SilverCoin()
+                    && basicGoldRate.Find("CopperCoin").GetComponent<Image>().sprite == LedgerUi.CopperCoin()
+                    && basicGoldRate.Find("GoldUnit").GetComponent<TMP_Text>().text == "/min",
+                    "Basic Gold row displays XX[GoldCoin] XX[SilverCoin] XX[CopperCoin] /min");
+                Check(Panel.VisibleRows.Where(r => r.Item != null).Select(r => r.Key).SequenceEqual(new[] { "basic/item/iron_ingot", "basic/item/iron_ore", "basic/item/iron_sword", "basic/item/gold_ore" }),
+                    "Basic mode sorts active items by Tier then A-Z and hides zero-production items by default");
+                PointerClick(Panel.ShowAllButton);
+                Check(Panel.ShowingAll && Panel.VisibleRows.Any(r => r.Key == "basic/item/iron_armor") && !Panel.VisibleRows.Any(r => r.Key == "basic/item/sapphire"),
+                    "Basic mode Show All toggle reveals unlocked zero-production items while keeping unresearched items hidden");
+                PointerClick(Panel.ShowAllButton);
+                Check(!Panel.ShowingAll && !Panel.VisibleRows.Any(r => r.Key == "basic/item/iron_armor"),
+                    "Toggling Show All off hides zero-production items again in Basic mode");
+                PointerClick(Panel.SecButton);
+                Check(Panel.Unit == LedgerPanel.TimeUnit.Sec
+                    && basicGoldRate.Find("GoldUnit").GetComponent<TMP_Text>().text == "/sec"
+                    && RowButton("basic/currency/4").transform.Find("Rate").GetComponent<TMP_Text>().text.EndsWith("/sec"),
+                    "Selecting sec unit scales rates to per-second and updates rate suffixes");
+                PointerClick(Panel.HourButton);
+                Check(Panel.Unit == LedgerPanel.TimeUnit.Hour
+                    && basicGoldRate.Find("GoldUnit").GetComponent<TMP_Text>().text == "/hour"
+                    && RowButton("basic/currency/4").transform.Find("Rate").GetComponent<TMP_Text>().text.EndsWith("/hour"),
+                    "Selecting hour unit scales rates to per-hour and updates rate suffixes");
+                PointerClick(Panel.MinButton);
+                Check(Panel.Unit == LedgerPanel.TimeUnit.Min && basicGoldRate.Find("GoldUnit").GetComponent<TMP_Text>().text == "/min",
+                    "Selecting min unit restores per-minute rate scaling");
+
+                PointerClick(Panel.AdvButton);
+                Check(Panel.Mode == LedgerPanel.ViewMode.Adv, "Adv button switches to full hierarchical ledger view");
+                Check(Panel.VisibleRows.Count == 3 && Panel.VisibleRows.All(r => r.Depth == 0 && !r.Open),
+                    "In Adv mode, all currency roots start collapsed by default without dumping child rows");
                 Check(!RowView("currency/0").gameObject.activeSelf, "Root rows without a world target hide the View button");
                 var gold = Panel.VisibleRows.Single(r => r.Key == "currency/0");
                 Check(gold.Amount == Book.Snapshot().Sum(t => t.Net(0)), "Root net reconciles with the individual building nets");
@@ -200,7 +276,17 @@ namespace KingdomGlobalLedger
                     && goldRate.Find("CopperCoin").GetComponent<Image>().sprite == LedgerUi.CopperCoin()
                     && LedgerUi.GoldCoin() != null && LedgerUi.SilverCoin() != null && LedgerUi.CopperCoin() != null,
                     "Gold rows display XX[GoldCoin] XX[SilverCoin] XX[CopperCoin] with native coin symbols");
+                PointerClick(RowButton("currency/0"));
+                Check(Panel.VisibleRows.Any(r => r.Key.StartsWith("currency/0/")) && Panel.VisibleRows.Where(r => r.Depth == 1).All(r => !r.Open),
+                    "Expanding a currency root reveals collapsed containers without dumping buildings");
                 var mines = ContainerRow(foundry);
+                PointerClick(RowButton(mines.Key));
+                Check(Panel.VisibleRows.Any(r => r.Key.StartsWith(mines.Key + "/")),
+                    "Expanding a container row reveals its child building rows");
+                var commerceContainer = ContainerRow(commerce);
+                PointerClick(RowButton(commerceContainer.Key));
+                PointerClick(RowButton(BuildingRow(enchanter).Key));
+                PointerClick(RowButton(BuildingRow(enchanter).Key + "/costs"));
                 Check(mines.Label == "A Foundry" && mines.Amount == Book.Snapshot().Where(t => t.Source.TypeId == "Mine").Sum(t => t.Net(0)),
                     "Container label strips rich-text tags and groups two distinct Mine instances without a building-type layer");
                 Check(RowView(mines.Key).gameObject.activeSelf && RowView(BuildingRow(mineA).Key).gameObject.activeSelf,
@@ -254,13 +340,22 @@ namespace KingdomGlobalLedger
                 var ironSwordRoot = Panel.VisibleRows.Single(r => r.Key == "item/iron_sword");
                 Check(goldOreRoot.Amount == 2 && ironOreRoot.Amount == -oreCount && ironIngotRoot.Amount == 1 && ironSwordRoot.Amount == -1,
                     "Item root net production reconciles produced outputs minus consumed inputs across the kingdom");
+                PointerClick(RowButton("item/iron_ingot"));
                 var ingotFoundry = ContainerRow(foundry, "item/iron_ingot/");
+                PointerClick(RowButton(ingotFoundry.Key));
                 var ingotForge = BuildingRow(forge, "item/iron_ingot/");
+                PointerClick(RowButton(ingotForge.Key));
+                PointerClick(RowButton(ingotForge.Key + "/costs"));
                 var ingotOreCost = Panel.VisibleRows.Single(r => r.Key == ingotForge.Key + "/costs/item/iron_ore");
                 Check(ingotFoundry.Label == "A Foundry" && ingotForge.Amount == 1 && ingotOreCost.IconOnly && ingotOreCost.Amount == -oreCount
                     && ingotOreCost.Icon == ItemType.Get("iron_ore").GetIcon(),
                     "Production building rows show consumed input items as icon-only operating costs");
+                PointerClick(RowButton("item/gold_ore"));
+                var goldOreFoundry = ContainerRow(foundry, "item/gold_ore/");
+                PointerClick(RowButton(goldOreFoundry.Key));
                 var goldOreMine = BuildingRow(mineA, "item/gold_ore/");
+                PointerClick(RowButton(goldOreMine.Key));
+                PointerClick(RowButton(goldOreMine.Key + "/costs"));
                 var goldOreCost = Panel.VisibleRows.Single(r => r.Key == goldOreMine.Key + "/costs/currency/0");
                 Check(goldOreCost.IconOnly && goldOreCost.Amount == -expectedCost && goldOreCost.Icon == Currency.Gold.GetIcon(),
                     "Production building rows also include spent currencies under Operating Costs");
@@ -269,6 +364,14 @@ namespace KingdomGlobalLedger
                 Check(Panel.VisibleRows.All(r => r.Depth == 0 && !r.Open), "Collapse All button also collapses all item roots on the Production tab");
                 Panel.ResetTree(); Panel.RefreshNow();
                 PointerClick(Panel.CurrenciesButton);
+                PointerClick(RowButton("currency/0"));
+                PointerClick(RowButton(ContainerRow(foundry).Key));
+                PointerClick(RowButton(ContainerRow(commerce).Key));
+                PointerClick(RowButton(BuildingRow(enchanter).Key));
+                PointerClick(RowButton(BuildingRow(enchanter).Key + "/costs"));
+                PointerClick(RowButton(BuildingRow(shop).Key));
+                PointerClick(RowButton(BuildingRow(mineA).Key));
+                PointerClick(RowButton(BuildingRow(mineB).Key));
                 Canvas.ForceUpdateCanvases();
                 Check(Panel.Scroller.content.rect.height > Panel.Scroller.viewport.rect.height, "Expanded tree has scrollable overflow");
                 Panel.Scroller.verticalNormalizedPosition = .35f;
@@ -296,6 +399,11 @@ namespace KingdomGlobalLedger
                     "WarProgress.UpdateWar attributes war medal gains directly to the matching WarEffort building in Global Ledger");
                 Panel.RefreshNow();
                 var medalsRoot = Panel.VisibleRows.Single(r => r.Key == "currency/2");
+                RevealRow("currency/2");
+                PointerClick(RowButton("currency/2"));
+                var medalsCommerce = ContainerRow(commerce, "currency/2/");
+                RevealRow(medalsCommerce.Key);
+                PointerClick(RowButton(medalsCommerce.Key));
                 Check(medalsRoot.Amount == medalsAfter - medalsBefore && Panel.VisibleRows.Any(r => r.Key == BuildingRow(warEffort, "currency/2/").Key),
                     "Medals root reconciles with the WarEffort building gain on the Currencies tab");
                 var eastWar = WarType.Get("eastern");
@@ -388,8 +496,10 @@ namespace KingdomGlobalLedger
             if (error == null) try
             {
                 PointerClick(BarButton());
-                Check(Panel && Panel.VisibleRows.Count(r => r.Depth == 0) == 1 && FoundationApi.ModBar.Items.Count(r => r.ModId == Id) == 1,
-                    "A fresh HUD recreates one working button and shows only the new kingdom's unlocked currency");
+                Check(Panel && Panel.Mode == LedgerPanel.ViewMode.Basic && Panel.VisibleRows.Count(r => r.Currency.HasValue) == 1 && FoundationApi.ModBar.Items.Count(r => r.ModId == Id) == 1,
+                    "A fresh HUD recreates one working button and shows only the new kingdom's unlocked currency in Basic mode");
+                PointerClick(Panel.AdvButton);
+                Check(Panel.VisibleRows.Count(r => r.Depth == 0) == 1, "In Adv mode, only the single unlocked currency root is shown");
                 Check(exceptions.Count == 0, "No Unity exceptions during the prototype checks");
             }
             catch (Exception ex) { error = ex.ToString(); }
