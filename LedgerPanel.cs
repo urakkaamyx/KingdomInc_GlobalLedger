@@ -146,8 +146,9 @@ namespace KingdomGlobalLedger
         void Update()
         {
             var bar = anchor ? anchor.transform.parent?.parent?.parent as RectTransform : null;
-            if (!anchor || !anchor.gameObject.activeInHierarchy || !anchor.GetComponentInParent<Canvas>().enabled || TechTreeMenu.Visible || (bar && bar.anchoredPosition.y > 0.5f))
+            if (!anchor || !anchor.gameObject.activeInHierarchy || !anchor.GetComponentInParent<Canvas>().enabled || (bar && bar.anchoredPosition.y > 0.5f))
             { if (GameUI.Instance) ClosePopup(); return; }
+            if (transform.GetSiblingIndex() != transform.parent.childCount - 1) transform.SetAsLastSibling();
             Fit();
             if (Time.unscaledTime >= nextRefresh) RefreshNow();
         }

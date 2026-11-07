@@ -1,5 +1,6 @@
 using Assets.Behaviour.Flow;
 using Assets.Behaviour.UI;
+using Assets.Behaviour.UI.TechTree;
 using Assets.Source.Player;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -18,6 +19,7 @@ namespace KingdomGlobalLedger
         internal bool Focus(LedgerTarget target)
         {
             if (target == null || !target.Exists || !WorldFlowManager.Instance || !GameUI.Instance) return false;
+            if (TechTreeMenu.Visible) GameUI.Instance.ToggleTechMenu(false);
             int index = GamePlayer.Current.Flows.IndexOf(target.Flow);
             WorldFlowManager.Instance.ShowFlow(index);
             if (WorldFlowCamera.Instance) WorldFlowCamera.Instance.RecalculateBounds();

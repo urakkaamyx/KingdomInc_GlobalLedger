@@ -6,6 +6,7 @@ using System.Linq;
 using Assets.Behaviour.Flow;
 using Assets.Behaviour.UI;
 using Assets.Behaviour.UI.Shared;
+using Assets.Behaviour.UI.TechTree;
 using Assets.Source.Adventure;
 using Assets.Source.Flow;
 using Assets.Source.Flow.Elements;
@@ -458,6 +459,18 @@ namespace KingdomGlobalLedger
                 GameUI.Instance.ToggleUI(false);
                 Check(!Panel.gameObject.activeSelf, "Hiding the HUD closes the custom dropdown");
                 GameUI.Instance.ToggleUI(true);
+                PointerClick(BarButton());
+                Check(Panel.gameObject.activeSelf, "Dropdown is reopened on the workspace");
+                GameUI.Instance.ToggleTechMenu(true);
+                Check(TechTreeMenu.Visible && Panel.gameObject.activeSelf, "Opening tech tree keeps Global Ledger open");
+                PointerClick(BarButton());
+                Check(!Panel.gameObject.activeSelf && TechTreeMenu.Visible, "Clicking ModBar button closes Global Ledger while on tech tree");
+                PointerClick(BarButton());
+                Check(Panel.gameObject.activeSelf && TechTreeMenu.Visible, "Clicking ModBar button opens and keeps Global Ledger open on tech tree");
+                GameUI.Instance.ToggleTechMenu(false);
+                Check(!TechTreeMenu.Visible && Panel.gameObject.activeSelf, "Exiting tech tree keeps Global Ledger open on the workspace");
+                PointerClick(BarButton());
+                Check(!Panel.gameObject.activeSelf, "Dropdown closed on workspace");
             }
             catch (Exception ex) { error = ex.ToString(); }
             yield return null;

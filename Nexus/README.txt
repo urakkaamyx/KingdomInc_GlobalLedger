@@ -1,4 +1,4 @@
-Global Ledger 0.1.6 for Kingdom Inc
+Global Ledger 0.1.7 for Kingdom Inc
 
 Track live currency earnings, operating expenses, and item production across
 your entire kingdom from the top Mod Bar.

@@ -1,3 +1,10 @@
+0.1.7
+- Fixed an issue where opening Global Ledger on the Tech Tree screen caused the
+  ledger to flash and disappear immediately.
+- Made Global Ledger remain open and fully interactive while viewing the Tech Tree.
+- Clicking View on a building or container while on the Tech Tree screen exits the
+  Tech Tree and focuses the target in the workspace without closing the ledger.
+
 0.1.6
 - Added Basic / Adv mode toggle buttons in the top-right corner.
   - Basic mode displays a streamlined overview of Currency Net Collection and
