@@ -320,7 +320,6 @@ namespace KingdomGlobalLedger
         {
             if (GamePlayer.Current == null) return;
             var currentTotals = book.Snapshot(windowSeconds);
-            var recentTotals = book.Snapshot(windowSeconds * 2);
 
             // Section 1: CURRENCIES
             VisibleRows.Add(new RowData("basic/header/currencies", "CURRENCY NET COLLECTION", 0) { IsHeader = true });
@@ -329,8 +328,15 @@ namespace KingdomGlobalLedger
             {
                 if (!currency.IsUnlocked()) continue;
                 int c = (int)currency;
-                bool wasRecent = recentTotals.Any(t => t.Active(c));
-                if (!showAll && currency != Currency.Gold && !wasRecent) continue;
+                bool hasActivity = book.HasCurrencyActivity(c);
+                bool isActiveInWindow = currentTotals.Any(t => t.Active(c));
+                double timeSinceActivity = book.TimeSinceCurrencyActivity(c);
+
+                if (!showAll)
+                {
+                    if (currency != Currency.Gold && !hasActivity) continue;
+                    if (!isActiveInWindow && timeSinceActivity > windowSeconds + 60.0 && currency != Currency.Gold) continue;
+                }
 
                 long net = currentTotals.Where(t => t.Active(c)).Sum(t => t.Net(c));
                 var row = new RowData("basic/currency/" + c, LedgerUi.CurrencyName(currency), 1)
@@ -355,8 +361,21 @@ namespace KingdomGlobalLedger
             foreach (var item in items)
             {
                 string id = item.Identifier;
-                bool wasRecent = recentTotals.Any(t => t.ItemActive(id));
-                if (!showAll && !wasRecent) continue;
+                bool hasActivity = book.HasItemActivity(id);
+                bool isActiveInWindow = currentTotals.Any(t => t.ItemActive(id));
+                double timeSinceActivity = book.TimeSinceItemActivity(id);
+
+                if (!showAll)
+                {
+                    // 1. If something hasnt been made DO NOT SHOW IT
+                    if (!hasActivity) continue;
+
+                    // 2. If somethings qty hasnt been greater than 0 within the selected time,
+                    // and it has been more than a rolling minute (60s) since it was last made, DO NOT SHOW IT.
+                    // 3. If something has been made, and value keeps changing: SHOW IT (isActiveInWindow == true).
+                    // 4. If something has been made recently, but drops to 0: SHOW IT FOR A ROLLING MINUTE (timeSinceActivity <= windowSeconds + 60.0).
+                    if (!isActiveInWindow && timeSinceActivity > windowSeconds + 60.0) continue;
+                }
 
                 long net = currentTotals.Where(t => t.ItemActive(id)).Sum(t => t.ItemNet(id));
                 var row = new RowData("basic/item/" + id, LedgerUi.ItemName(item), 1)

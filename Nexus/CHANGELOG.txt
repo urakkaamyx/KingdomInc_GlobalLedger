@@ -1,3 +1,15 @@
+0.1.11
+- Fixed Basic mode showing unlocked items with 0.00/{time} when they have never
+  been produced in the session.
+- Implemented exact activity lifecycle filtering in Basic mode:
+  * Items and non-gold currencies that have never been produced or earned are hidden.
+  * Items and currencies actively being produced/earned show their live rates.
+  * Items and currencies whose production drops to 0 remain visible displaying
+    0.00/{time} for exactly one rolling minute (60 seconds) so halted production
+    is clearly visible.
+  * After one rolling minute with no production, they cleanly drop off.
+  * Toggling "Show All" lists all unlocked items and currencies as before.
+
 0.1.10
 - Added a dedicated "Rolling Avg" toggle button directly on the top-right header
   bar beside Basic | Adv so you can toggle rolling averages on and off without

@@ -11,13 +11,22 @@ namespace KingdomGlobalLedger
         internal const int CurrencyCount = 9;
         readonly Func<double> clock;
         readonly SortedDictionary<long, Dictionary<string, Totals>> buckets = new SortedDictionary<long, Dictionary<string, Totals>>();
+        readonly Dictionary<string, double> lastItemActivity = new Dictionary<string, double>();
+        readonly Dictionary<int, double> lastCurrencyActivity = new Dictionary<int, double>();
         double started;
         internal LedgerBook(Func<double> clock) { this.clock = clock; Reset(); }
         internal double Elapsed => Math.Max(0, clock() - started);
-        internal void Reset() { buckets.Clear(); started = clock(); }
+        internal void Reset()
+        {
+            buckets.Clear();
+            lastItemActivity.Clear();
+            lastCurrencyActivity.Clear();
+            started = clock();
+        }
         internal void Record(Source source, Currency currency, long earned, long spent)
         {
             if (earned == 0 && spent == 0) return;
+            lastCurrencyActivity[(int)currency] = clock();
             long second = (long)Math.Floor(clock());
             Trim(second);
             if (!buckets.TryGetValue(second, out var entries)) buckets[second] = entries = new Dictionary<string, Totals>();
@@ -28,6 +37,7 @@ namespace KingdomGlobalLedger
         internal void RecordItem(Source source, string itemId, long produced, long consumed)
         {
             if ((produced == 0 && consumed == 0) || string.IsNullOrEmpty(itemId)) return;
+            lastItemActivity[itemId] = clock();
             long second = (long)Math.Floor(clock());
             Trim(second);
             if (!buckets.TryGetValue(second, out var entries)) buckets[second] = entries = new Dictionary<string, Totals>();
@@ -35,6 +45,10 @@ namespace KingdomGlobalLedger
             if (produced != 0) { totals.ItemEarned.TryGetValue(itemId, out var old); totals.ItemEarned[itemId] = old + produced; }
             if (consumed != 0) { totals.ItemSpent.TryGetValue(itemId, out var old); totals.ItemSpent[itemId] = old + consumed; }
         }
+        internal bool HasItemActivity(string itemId) => !string.IsNullOrEmpty(itemId) && lastItemActivity.ContainsKey(itemId);
+        internal double TimeSinceItemActivity(string itemId) => !string.IsNullOrEmpty(itemId) && lastItemActivity.TryGetValue(itemId, out var time) ? Math.Max(0, clock() - time) : double.MaxValue;
+        internal bool HasCurrencyActivity(int currency) => lastCurrencyActivity.ContainsKey(currency);
+        internal double TimeSinceCurrencyActivity(int currency) => lastCurrencyActivity.TryGetValue(currency, out var time) ? Math.Max(0, clock() - time) : double.MaxValue;
         internal const int MaxRetentionSeconds = 1800; // 30 minutes
         void Trim(long second)
         {
