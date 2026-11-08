@@ -1,4 +1,4 @@
-0.1.9
+0.1.10
 - Added a dedicated "Rolling Avg" toggle button directly on the top-right header
   bar beside Basic | Adv so you can toggle rolling averages on and off without
   needing to open the Mod Config menu. The button turns Gold when active.
@@ -8,6 +8,9 @@
   production has stopped. Once inactive for the full window, they cleanly drop off.
   Unearned currencies and unproduced items that were never made remain hidden
   unless Show All is clicked.
+
+0.1.9
+- Initial Basic mode zero-rate filtering.
 
 0.1.8
 - Added Mod Config menu integration via Foundation ModConfig.
