@@ -225,8 +225,8 @@ namespace KingdomGlobalLedger
                     "Dropdown opens in Basic mode with minute rate scaling by default");
                 Check(Panel.VisibleRows.Any(r => r.Key == "basic/header/currencies" && r.IsHeader) && Panel.VisibleRows.Any(r => r.Key == "basic/header/production" && r.IsHeader),
                     "Basic mode displays separate section headers for Currency Net Collection and Item Net Production");
-                Check(Panel.VisibleRows.Count(r => r.Currency.HasValue) == 3 && !Panel.VisibleRows.Any(r => r.Key == "basic/currency/3"),
-                    "Only Gold, Requisition and Mana roots are visible in Basic mode; locked Rings stay hidden");
+                Check(Panel.VisibleRows.Count(r => r.Currency.HasValue) == 2 && Panel.VisibleRows.Any(r => r.Key == "basic/currency/0") && Panel.VisibleRows.Any(r => r.Key == "basic/currency/4") && !Panel.VisibleRows.Any(r => r.Key == "basic/currency/1"),
+                    "Only active currencies (Gold and Mana) are visible in Basic mode; zero-activity Requisition stays hidden");
                 var basicGold = Panel.VisibleRows.Single(r => r.Key == "basic/currency/0");
                 Check(basicGold.Amount == Book.Snapshot().Sum(t => t.Net(0)), "Basic Gold net reconciles with the individual building nets");
                 var basicGoldRate = RowButton("basic/currency/0").transform.Find("GoldRate");
@@ -243,11 +243,11 @@ namespace KingdomGlobalLedger
                 Check(Panel.VisibleRows.Where(r => r.Item != null).Select(r => r.Key).SequenceEqual(new[] { "basic/item/iron_ingot", "basic/item/iron_ore", "basic/item/iron_sword", "basic/item/gold_ore" }),
                     "Basic mode sorts active items by Tier then A-Z and hides zero-production items by default");
                 PointerClick(Panel.ShowAllButton);
-                Check(Panel.ShowingAll && Panel.VisibleRows.Any(r => r.Key == "basic/item/iron_armor") && !Panel.VisibleRows.Any(r => r.Key == "basic/item/sapphire"),
-                    "Basic mode Show All toggle reveals unlocked zero-production items while keeping unresearched items hidden");
+                Check(Panel.ShowingAll && Panel.VisibleRows.Any(r => r.Key == "basic/currency/1") && Panel.VisibleRows.Any(r => r.Key == "basic/item/iron_armor") && !Panel.VisibleRows.Any(r => r.Key == "basic/item/sapphire"),
+                    "Basic mode Show All toggle reveals unlocked zero-production items and currencies while keeping unresearched items hidden");
                 PointerClick(Panel.ShowAllButton);
-                Check(!Panel.ShowingAll && !Panel.VisibleRows.Any(r => r.Key == "basic/item/iron_armor"),
-                    "Toggling Show All off hides zero-production items again in Basic mode");
+                Check(!Panel.ShowingAll && !Panel.VisibleRows.Any(r => r.Key == "basic/currency/1") && !Panel.VisibleRows.Any(r => r.Key == "basic/item/iron_armor"),
+                    "Toggling Show All off hides zero-production items and currencies again in Basic mode");
                 PointerClick(Panel.SecButton);
                 Check(Panel.Unit == LedgerPanel.TimeUnit.Sec
                     && basicGoldRate.Find("GoldUnit").GetComponent<TMP_Text>().text == "/sec"
@@ -261,6 +261,13 @@ namespace KingdomGlobalLedger
                 PointerClick(Panel.MinButton);
                 Check(Panel.Unit == LedgerPanel.TimeUnit.Min && basicGoldRate.Find("GoldUnit").GetComponent<TMP_Text>().text == "/min",
                     "Selecting min unit restores per-minute rate scaling");
+
+                PointerClick(Panel.RollingButton);
+                Check(EnableRollingAverage.Value == true && Panel.WindowSeconds == 180 && Panel.RollingButton.GetComponentInChildren<TMP_Text>().color == LedgerUi.Gold,
+                    "Clicking Rolling average button on UI enables rolling average and highlights button gold");
+                PointerClick(Panel.RollingButton);
+                Check(EnableRollingAverage.Value == false && Panel.WindowSeconds == 60 && Panel.RollingButton.GetComponentInChildren<TMP_Text>().color == LedgerUi.Paper,
+                    "Clicking Rolling average button on UI again disables rolling average and restores paper color");
 
                 Check(FoundationApi.ModConfig != null && FoundationApi.ModConfig.TryGetSection(Id, out var configSection) && configSection.Elements.Count >= 3,
                     "Global Ledger registers configuration section with Foundation ModConfig");

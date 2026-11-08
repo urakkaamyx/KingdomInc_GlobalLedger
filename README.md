@@ -8,12 +8,13 @@ Install the requirements listed on the [Nexus page](https://www.nexusmods.com/ki
 
 ## Features
 
+- **Rolling average UI button**: Toggle rolling averages on and off right from the top-right header bar via the `Rolling Avg` button (turns Gold when active) without opening the config menu.
 - **Mod Config menu integration**: Configure rolling average damping options from the Mod Config menu:
   - **Rolling average**: Toggle to smooth out instantaneous spikes and jumpiness in rate calculations.
   - **Entry Count**: Slider (2 to 30, default 3) to configure how many entries to average. When `sec` is selected, averages over the chosen number of seconds; when `min` or `hour` is selected, averages over that many minutes.
 - **Mod Bar dropdown**: Click **Global Ledger** on the right side of the shared Mod Bar beneath the currency bar to open or close the dropdown. While open, you can freely pan (WASD and mouse drag), zoom, and click on the workspace without closing the ledger.
 - **Basic | Adv modes**: Toggle between Basic summary and Adv hierarchical view using the `Basic | Adv` buttons in the top-right corner.
-  - **Basic mode**: Streamlined overview listing `Currency Net Collection` and `Item Net Production` (`[Icon] [Name] +/-XXX[icon] / {sec|min|hour}`), with items sorted by **Tier → A–Z**.
+  - **Basic mode**: Streamlined overview listing `Currency Net Collection` and `Item Net Production` (`[Icon] [Name] +/-XXX[icon] / {sec|min|hour}`), with items sorted by **Tier → A–Z**. Currencies and items without production activity in the window are cleanly omitted unless **Show All** is clicked.
   - **Adv mode**: Full hierarchical breakdown (`Currency / Item > Container > Building > Operating Costs`). Defaults to everything collapsed for clean drilling down.
 - **Rate time unit selector**: Click `[sec | min | hour]` in the header bar (defaults to `min`) to dynamically scale all rates across both Basic and Adv modes.
 - **Currencies tab (Adv)**: View every unlocked currency's rolling net rate (`Earned - Spent` over the last 60 seconds). Gold is written out in full Gold, Silver, and Copper denominations with native coin symbols (`XX [Gold] XX [Silver] XX [Copper]`); other currencies retain their native units. Expand a currency root to inspect containers, individual buildings, and `Operating Costs` (icon-only currency rows).

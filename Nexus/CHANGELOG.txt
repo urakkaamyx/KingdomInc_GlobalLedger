@@ -1,3 +1,12 @@
+0.1.9
+- Added a dedicated "Rolling Avg" toggle button directly on the top-right header
+  bar beside Basic | Adv so you can toggle rolling averages on and off without
+  needing to open the Mod Config menu. The button turns Gold when active.
+- Fixed Basic mode displaying unlocked currencies and items with 0.00/{time} when
+  they have not had any activity in the current window. Unearned currencies and
+  unproduced items are now cleanly hidden from Basic mode unless Show All is
+  toggled on.
+
 0.1.8
 - Added Mod Config menu integration via Foundation ModConfig.
 - Added "Rolling average" toggle in the Mod Config menu:

@@ -26,7 +26,7 @@ namespace KingdomGlobalLedger
         RectTransform overlay, panel, content, viewport;
         TMP_Text status, footer;
         Button currencies, production, showAllButton, collapseAll;
-        Button basicButton, advButton, secButton, minButton, hourButton;
+        Button basicButton, advButton, secButton, minButton, hourButton, rollingButton;
         ScrollRect scroll;
         readonly Vector3[] anchorCorners = new Vector3[4];
         readonly HashSet<string> expanded = new HashSet<string>();
@@ -58,6 +58,7 @@ namespace KingdomGlobalLedger
         internal Button SecButton => secButton;
         internal Button MinButton => minButton;
         internal Button HourButton => hourButton;
+        internal Button RollingButton => rollingButton;
 
         internal static LedgerPanel Create(LedgerBook book, Button anchor)
         {
@@ -99,6 +100,13 @@ namespace KingdomGlobalLedger
             var close = ui.Button(panel, "Close", "X", ClosePopup);
             close.GetComponent<RectTransform>().anchorMin = close.GetComponent<RectTransform>().anchorMax = new Vector2(1, 1);
             close.GetComponent<RectTransform>().pivot = new Vector2(1, 1); close.GetComponent<RectTransform>().anchoredPosition = new Vector2(-16, -14); close.GetComponent<RectTransform>().sizeDelta = new Vector2(36, 32);
+
+            rollingButton = ui.Button(panel, "RollingToggle", "Rolling Avg", ToggleRollingAverage, 14);
+            var rollingRect = (RectTransform)rollingButton.transform;
+            rollingRect.anchorMin = rollingRect.anchorMax = new Vector2(1, 1);
+            rollingRect.pivot = new Vector2(1, 1);
+            rollingRect.anchoredPosition = new Vector2(-180, -14);
+            rollingRect.sizeDelta = new Vector2(92, 32);
 
             basicButton = ui.Button(panel, "BasicMode", "Basic", () => SetViewMode(ViewMode.Basic));
             var basicRect = (RectTransform)basicButton.transform;
@@ -217,6 +225,14 @@ namespace KingdomGlobalLedger
             showAll = !showAll;
             RefreshNow();
         }
+        internal void ToggleRollingAverage()
+        {
+            if (GlobalLedgerPlugin.Instance?.EnableRollingAverage != null)
+            {
+                GlobalLedgerPlugin.Instance.EnableRollingAverage.Value = !GlobalLedgerPlugin.Instance.EnableRollingAverage.Value;
+            }
+            RefreshNow();
+        }
         internal void CollapseAll()
         {
             expanded.Clear();
@@ -256,6 +272,7 @@ namespace KingdomGlobalLedger
             showAllButton.GetComponentInChildren<TMP_Text>().color = showAll ? LedgerUi.Gold : LedgerUi.Paper;
 
             bool rolling = GlobalLedgerPlugin.Instance?.EnableRollingAverage?.Value == true;
+            rollingButton.GetComponentInChildren<TMP_Text>().color = rolling ? LedgerUi.Gold : LedgerUi.Paper;
             int entries = GlobalLedgerPlugin.Instance?.RollingAverageEntries != null ? Mathf.Clamp(GlobalLedgerPlugin.Instance.RollingAverageEntries.Value, 2, 60) : 3;
             divisor = rolling ? entries : 1;
 
@@ -306,11 +323,14 @@ namespace KingdomGlobalLedger
 
             // Section 1: CURRENCIES
             VisibleRows.Add(new RowData("basic/header/currencies", "CURRENCY NET COLLECTION", 0) { IsHeader = true });
+            int currencyCount = 0;
             foreach (Currency currency in Enum.GetValues(typeof(Currency)))
             {
                 if (!currency.IsUnlocked()) continue;
                 int c = (int)currency;
-                long net = data.Where(t => t.Totals.Active(c)).Sum(t => t.Totals.Net(c));
+                var active = data.Where(t => t.Totals.Active(c)).ToArray();
+                long net = active.Length > 0 ? active.Sum(t => t.Totals.Net(c)) : 0;
+                if (!showAll && currency != Currency.Gold && (active.Length == 0 || net == 0)) continue;
                 var row = new RowData("basic/currency/" + c, LedgerUi.CurrencyName(currency), 1)
                 {
                     Currency = currency,
@@ -319,6 +339,11 @@ namespace KingdomGlobalLedger
                     Icon = currency.GetIcon()
                 };
                 VisibleRows.Add(row);
+                currencyCount++;
+            }
+            if (currencyCount == 0 && !showAll)
+            {
+                VisibleRows.Add(new RowData("basic/currency/empty", "No observed currency activity in the recent window. Click Show All to list unlocked currencies.", 1));
             }
 
             // Section 2: PRODUCTION
@@ -329,8 +354,8 @@ namespace KingdomGlobalLedger
             {
                 string id = item.Identifier;
                 var active = data.Where(t => t.Totals.ItemActive(id)).ToArray();
-                if (!showAll && active.Length == 0) continue;
-                long net = active.Sum(t => t.Totals.ItemNet(id));
+                long net = active.Length > 0 ? active.Sum(t => t.Totals.ItemNet(id)) : 0;
+                if (!showAll && (active.Length == 0 || net == 0)) continue;
                 var row = new RowData("basic/item/" + id, LedgerUi.ItemName(item), 1)
                 {
                     Item = item,

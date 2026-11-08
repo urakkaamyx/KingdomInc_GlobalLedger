@@ -1,4 +1,4 @@
-Global Ledger 0.1.8 for Kingdom Inc
+Global Ledger 0.1.9 for Kingdom Inc
 
 Track live currency earnings, operating expenses, and item production across
 your entire kingdom from the top Mod Bar.
@@ -11,6 +11,9 @@ Installed file: BepInEx/plugins/GlobalLedger/GlobalLedger.dll
 Restart the game after installation or an update.
 
 FEATURES & USE
+- Rolling average toggle on UI: Click the Rolling Avg button in the top-right
+  header bar to instantly toggle rolling averages on and off without leaving
+  the ledger. The button highlights Gold when active.
 - Mod Config menu settings: Access the Global Ledger section in the Mod Config
   menu to configure rolling averages:
   - Rolling average checkbox: Toggle rolling averages on or off to make rate
@@ -26,7 +29,8 @@ FEATURES & USE
   using the buttons in the top-right corner.
   - Basic mode: Streamlined summary listing Currency Net Collection and Item
     Net Production ([Icon] [Name] +/-XXX[icon] / {sec|min|hour}), with items
-    sorted by Tier -> A-Z.
+    sorted by Tier -> A-Z. Currencies and items with no production in the recent
+    window are cleanly hidden from Basic mode unless Show All is clicked.
   - Adv mode: Full breakdown (Currency / Item > Container > Building >
     Operating Costs). Defaults to everything collapsed for clean drilling down.
 - Rate time unit toggle: Click [sec | min | hour] in the header bar (defaults
