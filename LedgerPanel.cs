@@ -319,7 +319,8 @@ namespace KingdomGlobalLedger
         void BuildBasic()
         {
             if (GamePlayer.Current == null) return;
-            var data = locations.Resolve(book.Snapshot(windowSeconds));
+            var currentTotals = book.Snapshot(windowSeconds);
+            var recentTotals = book.Snapshot(windowSeconds * 2);
 
             // Section 1: CURRENCIES
             VisibleRows.Add(new RowData("basic/header/currencies", "CURRENCY NET COLLECTION", 0) { IsHeader = true });
@@ -328,9 +329,10 @@ namespace KingdomGlobalLedger
             {
                 if (!currency.IsUnlocked()) continue;
                 int c = (int)currency;
-                var active = data.Where(t => t.Totals.Active(c)).ToArray();
-                long net = active.Length > 0 ? active.Sum(t => t.Totals.Net(c)) : 0;
-                if (!showAll && currency != Currency.Gold && (active.Length == 0 || net == 0)) continue;
+                bool wasRecent = recentTotals.Any(t => t.Active(c));
+                if (!showAll && currency != Currency.Gold && !wasRecent) continue;
+
+                long net = currentTotals.Where(t => t.Active(c)).Sum(t => t.Net(c));
                 var row = new RowData("basic/currency/" + c, LedgerUi.CurrencyName(currency), 1)
                 {
                     Currency = currency,
@@ -353,9 +355,10 @@ namespace KingdomGlobalLedger
             foreach (var item in items)
             {
                 string id = item.Identifier;
-                var active = data.Where(t => t.Totals.ItemActive(id)).ToArray();
-                long net = active.Length > 0 ? active.Sum(t => t.Totals.ItemNet(id)) : 0;
-                if (!showAll && (active.Length == 0 || net == 0)) continue;
+                bool wasRecent = recentTotals.Any(t => t.ItemActive(id));
+                if (!showAll && !wasRecent) continue;
+
+                long net = currentTotals.Where(t => t.ItemActive(id)).Sum(t => t.ItemNet(id));
                 var row = new RowData("basic/item/" + id, LedgerUi.ItemName(item), 1)
                 {
                     Item = item,
