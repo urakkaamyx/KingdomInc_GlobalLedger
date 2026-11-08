@@ -2,8 +2,9 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <Version>0.1.7</Version>
+    <Version>0.1.8</Version>
     <AssemblyName>GlobalLedger</AssemblyName>
+    <DefaultItemExcludes>$(DefaultItemExcludes);AI/**;Backups/**;Verification/**;Releases/**</DefaultItemExcludes>
     <GameRoot Condition="'$(GameRoot)' == ''">$(MSBuildThisFileDirectory)..\..\</GameRoot>
     <FoundationDll Condition="'$(FoundationDll)' == '' and Exists('$(MSBuildThisFileDirectory)..\Foundation\bin\Release\netstandard2.1\Foundation.dll')">$(MSBuildThisFileDirectory)..\Foundation\bin\Release\netstandard2.1\Foundation.dll</FoundationDll>
     <FoundationDll Condition="'$(FoundationDll)' == ''">$(GameRoot)BepInEx\plugins\Foundation\Foundation.dll</FoundationDll>

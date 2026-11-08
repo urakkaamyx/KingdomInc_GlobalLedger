@@ -130,34 +130,51 @@ namespace KingdomGlobalLedger
                 default: return "/min";
             }
         }
-        internal static double ScaleRate(long value, LedgerPanel.TimeUnit unit)
+        internal static double ScaleRate(long value, LedgerPanel.TimeUnit unit, int divisor = 1)
         {
+            if (divisor <= 0) divisor = 1;
             switch (unit)
             {
-                case LedgerPanel.TimeUnit.Sec: return value / 60.0;
-                case LedgerPanel.TimeUnit.Hour: return value * 60.0;
-                default: return value;
+                case LedgerPanel.TimeUnit.Sec:
+                    return divisor > 1 ? (double)value / divisor : value / 60.0;
+                case LedgerPanel.TimeUnit.Hour:
+                    return divisor > 1 ? ((double)value / divisor) * 60.0 : value * 60.0;
+                default:
+                    return divisor > 1 ? (double)value / divisor : value;
             }
         }
-        internal static (string Sign, long Gold, long Silver, long Copper) SplitGoldScaled(long value, LedgerPanel.TimeUnit unit)
+        internal static (string Sign, long Gold, long Silver, long Copper) SplitGoldScaled(long value, LedgerPanel.TimeUnit unit, int divisor = 1)
         {
-            long scaled = unit == LedgerPanel.TimeUnit.Sec ? (long)Math.Round(value / 60.0) : unit == LedgerPanel.TimeUnit.Hour ? value * 60 : value;
+            if (divisor <= 0) divisor = 1;
+            long scaled;
+            switch (unit)
+            {
+                case LedgerPanel.TimeUnit.Sec:
+                    scaled = divisor > 1 ? (long)Math.Round((double)value / divisor) : (long)Math.Round(value / 60.0);
+                    break;
+                case LedgerPanel.TimeUnit.Hour:
+                    scaled = divisor > 1 ? (long)Math.Round(((double)value / divisor) * 60.0) : value * 60;
+                    break;
+                default:
+                    scaled = divisor > 1 ? (long)Math.Round((double)value / divisor) : value;
+                    break;
+            }
             return SplitGold(scaled);
         }
-        internal static string Rate(long value, Currency currency, LedgerPanel.TimeUnit unit = LedgerPanel.TimeUnit.Min)
+        internal static string Rate(long value, Currency currency, LedgerPanel.TimeUnit unit = LedgerPanel.TimeUnit.Min, int divisor = 1)
         {
             if (currency == Currency.Gold)
             {
-                var (sign, gold, silver, copper) = SplitGoldScaled(value, unit);
+                var (sign, gold, silver, copper) = SplitGoldScaled(value, unit, divisor);
                 string suffix = unit == LedgerPanel.TimeUnit.Min ? "" : " " + TimeUnitSuffix(unit);
                 return sign + gold.ToString("#,0", CultureInfo.InvariantCulture) + "g " + silver + "s " + copper + "c" + suffix;
             }
-            double amount = Math.Round(ScaleRate(value, unit), 2, MidpointRounding.AwayFromZero);
+            double amount = Math.Round(ScaleRate(value, unit, divisor), 2, MidpointRounding.AwayFromZero);
             return (amount > 0 ? "+" : "") + amount.ToString("0.00", CultureInfo.InvariantCulture) + TimeUnitSuffix(unit);
         }
-        internal static string ItemRate(long value, LedgerPanel.TimeUnit unit = LedgerPanel.TimeUnit.Min)
+        internal static string ItemRate(long value, LedgerPanel.TimeUnit unit = LedgerPanel.TimeUnit.Min, int divisor = 1)
         {
-            double amount = Math.Round(ScaleRate(value, unit), 2, MidpointRounding.AwayFromZero);
+            double amount = Math.Round(ScaleRate(value, unit, divisor), 2, MidpointRounding.AwayFromZero);
             return (amount > 0 ? "+" : "") + amount.ToString("0.00", CultureInfo.InvariantCulture) + TimeUnitSuffix(unit);
         }
     }

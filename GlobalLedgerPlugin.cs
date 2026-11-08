@@ -3,6 +3,7 @@ using System.Linq;
 using Assets.Behaviour.UI;
 using Assets.Source.Player;
 using BepInEx;
+using BepInEx.Configuration;
 using HarmonyLib;
 using KingdomFoundation.Api;
 using UnityEngine;
@@ -13,12 +14,14 @@ namespace KingdomGlobalLedger
     [BepInDependency("urakka.kingdominc.foundation", "0.6.0")]
     public sealed partial class GlobalLedgerPlugin : BaseUnityPlugin
     {
-        public const string Id = "urakka.kingdominc.globalledger", Version = "0.1.7";
+        public const string Id = "urakka.kingdominc.globalledger", Version = "0.1.8";
         internal static GlobalLedgerPlugin Instance;
         internal readonly LedgerBook Book = new LedgerBook(() => Time.realtimeSinceStartupAsDouble);
         internal LedgerPanel Panel;
         internal LedgerNavigation Navigation;
         internal IModBarRegistration Registration;
+        internal ConfigEntry<bool> EnableRollingAverage;
+        internal ConfigEntry<int> RollingAverageEntries;
         Harmony hooks;
         GamePlayer player;
         internal static bool Diagnostic => Environment.GetCommandLineArgs().Contains("-global-ledger-smoke");
@@ -28,6 +31,20 @@ namespace KingdomGlobalLedger
             Instance = this;
             try
             {
+                EnableRollingAverage = Config.Bind(
+                    "Averages",
+                    "EnableRollingAverage",
+                    false,
+                    "Checking this box enables Rolling average .. makes the calculations less jumpy but not as accurate realtime."
+                );
+                RollingAverageEntries = Config.Bind(
+                    "Averages",
+                    "RollingAverageEntries",
+                    3,
+                    "Number of entries to average when Rolling average is enabled."
+                );
+                RegisterModConfig();
+
                 hooks = new Harmony(Id);
                 LedgerObserver.Install(hooks);
                 hooks.CreateClassProcessor(typeof(HudVisibility)).Patch();
@@ -38,6 +55,27 @@ namespace KingdomGlobalLedger
                 Logger.LogInfo("Global Ledger prototype: Foundation Mod Bar, currency tree and live building activity ready.");
             }
             catch { Registration?.Dispose(); hooks?.UnpatchSelf(); Instance = null; throw; }
+        }
+
+        void RegisterModConfig()
+        {
+            try
+            {
+                if (FoundationApi.ModConfig == null) return;
+                var section = FoundationApi.ModConfig.GetOrCreateSection(
+                    Id,
+                    "Global Ledger",
+                    "Tracks live currency earnings, operating expenses, and item production across your entire kingdom."
+                );
+                section.ClearElements();
+                section.AddToggle(EnableRollingAverage, "Rolling average");
+                section.AddText("Checking this box enables rolling averages, making the calculations less jumpy but not as accurate in real time.");
+                section.AddSlider(RollingAverageEntries, 2, 30, "Entry Count");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning("Failed to register Global Ledger with Foundation ModConfig: " + ex.Message);
+            }
         }
 
         void Update() => EnsurePlayer();
@@ -52,6 +90,7 @@ namespace KingdomGlobalLedger
         }
         void OnDestroy()
         {
+            if (FoundationApi.ModConfig != null) { try { FoundationApi.ModConfig.RemoveSection(Id); } catch {} }
             Registration?.Dispose();
             hooks?.UnpatchSelf();
             LedgerObserver.Reset();

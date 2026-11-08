@@ -4,6 +4,7 @@ Track live currency earnings, operating expenses, and item production across you
 
 [b]Features[/b]
 [list]
+[*][b]Mod Config menu integration:[/b] In the Mod Config menu, you can enable [b]Rolling average[/b] and customize the [b]Entry Count[/b] slider (2 to 30, default 3). Enabling rolling averages smooths out short-term spikes in rate calculations based on your selected unit (e.g., 3 entries over 3 seconds when [b]sec[/b] is selected, or 3 entries over 3 minutes when [b]min[/b] is selected).[/*]
 [*][b]Basic | Adv mode toggle:[/b] Switch between a streamlined summary and the detailed hierarchical breakdown using the [b]Basic[/b] and [b]Adv[/b] buttons in the top-right corner.
   [list]
   [*][b]Basic mode:[/b] Lists out [b]Currency Net Collection[/b] and [b]Item Net Production[/b] in a clean, scrollable overview ([b][Icon] [Name] +/-XXX[icon] / {sec|min|hour}[/b]), sorted by [b]Tier -> A-Z[/b].
@@ -35,4 +36,4 @@ Accounting history is session-local and adds no custom buildings, research, or s
 [b]Credits and links[/b]
 By rockyamyx / Urakka. Native game frames, fonts, and icons are used from the installed game and are not redistributed. Generative AI was used for code, documentation, and promotional thumbnail artwork.
 [url=https://github.com/urakkaamyx/KingdomInc_GlobalLedger]Source and user guide on GitHub[/url]
-[url=https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases/tag/v0.1.7]GitHub release 0.1.7[/url]
+[url=https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases/tag/v0.1.8]GitHub release 0.1.8[/url]

@@ -35,16 +35,22 @@ namespace KingdomGlobalLedger
             if (produced != 0) { totals.ItemEarned.TryGetValue(itemId, out var old); totals.ItemEarned[itemId] = old + produced; }
             if (consumed != 0) { totals.ItemSpent.TryGetValue(itemId, out var old); totals.ItemSpent[itemId] = old + consumed; }
         }
+        internal const int MaxRetentionSeconds = 1800; // 30 minutes
         void Trim(long second)
         {
-            foreach (var key in buckets.Keys.TakeWhile(key => key <= second - 60).ToArray()) buckets.Remove(key);
+            foreach (var key in buckets.Keys.TakeWhile(key => key <= second - MaxRetentionSeconds).ToArray()) buckets.Remove(key);
         }
-        internal IReadOnlyList<Totals> Snapshot()
+        internal IReadOnlyList<Totals> Snapshot(int windowSeconds = 60)
         {
-            Trim((long)Math.Floor(clock()));
+            if (windowSeconds <= 0) windowSeconds = 1;
+            long now = (long)Math.Floor(clock());
+            long cutoff = now - windowSeconds;
+            Trim(now);
             var result = new Dictionary<string, Totals>();
-            foreach (var bucket in buckets.Values)
-                foreach (var pair in bucket)
+            foreach (var bucket in buckets)
+            {
+                if (bucket.Key <= cutoff) continue;
+                foreach (var pair in bucket.Value)
                 {
                     if (!result.TryGetValue(pair.Key, out var totals)) result[pair.Key] = totals = new Totals(pair.Value.Source);
                     totals.Source = pair.Value.Source;
@@ -52,6 +58,7 @@ namespace KingdomGlobalLedger
                     foreach (var item in pair.Value.ItemEarned) { totals.ItemEarned.TryGetValue(item.Key, out var old); totals.ItemEarned[item.Key] = old + item.Value; }
                     foreach (var item in pair.Value.ItemSpent) { totals.ItemSpent.TryGetValue(item.Key, out var old); totals.ItemSpent[item.Key] = old + item.Value; }
                 }
+            }
             return result.Values.ToArray();
         }
         internal sealed class Source

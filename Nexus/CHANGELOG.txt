@@ -1,3 +1,12 @@
+0.1.8
+- Added Mod Config menu integration via Foundation ModConfig.
+- Added "Rolling average" toggle in the Mod Config menu:
+  "(Checking this box enabled Rolling average .. makes the calulations less jumpy but not as accurate realtime)".
+- Added "Entry Count" slider in the Mod Config menu (range 2 to 30, default 3):
+  When enabled, rate calculations are averaged over the chosen number of entries
+  based on the selected time unit (e.g., 3 entries over 3 seconds for /sec,
+  or 3 entries over 3 minutes for /min and /hour).
+
 0.1.7
 - Fixed an issue where opening Global Ledger on the Tech Tree screen caused the
   ledger to flash and disappear immediately.

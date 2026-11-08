@@ -8,6 +8,9 @@ Install the requirements listed on the [Nexus page](https://www.nexusmods.com/ki
 
 ## Features
 
+- **Mod Config menu integration**: Configure rolling average damping options from the Mod Config menu:
+  - **Rolling average**: Toggle to smooth out instantaneous spikes and jumpiness in rate calculations.
+  - **Entry Count**: Slider (2 to 30, default 3) to configure how many entries to average. When `sec` is selected, averages over the chosen number of seconds; when `min` or `hour` is selected, averages over that many minutes.
 - **Mod Bar dropdown**: Click **Global Ledger** on the right side of the shared Mod Bar beneath the currency bar to open or close the dropdown. While open, you can freely pan (WASD and mouse drag), zoom, and click on the workspace without closing the ledger.
 - **Basic | Adv modes**: Toggle between Basic summary and Adv hierarchical view using the `Basic | Adv` buttons in the top-right corner.
   - **Basic mode**: Streamlined overview listing `Currency Net Collection` and `Item Net Production` (`[Icon] [Name] +/-XXX[icon] / {sec|min|hour}`), with items sorted by **Tier → A–Z**.

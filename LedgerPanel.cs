@@ -38,10 +38,15 @@ namespace KingdomGlobalLedger
         bool showAll;
         ViewMode viewMode = ViewMode.Basic;
         TimeUnit timeUnit = TimeUnit.Min;
+        int divisor = 1;
+        int windowSeconds = 60;
         internal int SelectedTab => tab;
         internal bool ShowingAll => showAll;
         internal ViewMode Mode => viewMode;
         internal TimeUnit Unit => timeUnit;
+        internal int Divisor => divisor;
+        internal int WindowSeconds => windowSeconds;
+        internal string StatusText => status != null ? status.text : "";
         internal RectTransform Frame => panel;
         internal ScrollRect Scroller => scroll;
         internal Button CurrenciesButton => currencies;
@@ -250,8 +255,26 @@ namespace KingdomGlobalLedger
             production.GetComponentInChildren<TMP_Text>().color = tab == 1 ? LedgerUi.Gold : LedgerUi.Paper;
             showAllButton.GetComponentInChildren<TMP_Text>().color = showAll ? LedgerUi.Gold : LedgerUi.Paper;
 
+            bool rolling = GlobalLedgerPlugin.Instance?.EnableRollingAverage?.Value == true;
+            int entries = GlobalLedgerPlugin.Instance?.RollingAverageEntries != null ? Mathf.Clamp(GlobalLedgerPlugin.Instance.RollingAverageEntries.Value, 2, 60) : 3;
+            divisor = rolling ? entries : 1;
+
+            if (rolling)
+            {
+                if (timeUnit == TimeUnit.Sec) windowSeconds = entries;
+                else windowSeconds = entries * 60;
+            }
+            else
+            {
+                windowSeconds = 60;
+            }
+
             string rateUnitStr = timeUnit == TimeUnit.Sec ? "second" : timeUnit == TimeUnit.Min ? "minute" : "hour";
-            status.text = "All workspaces  |  Last 60 seconds (Rates: per " + rateUnitStr + ")" + (book.Elapsed < 60 ? "  |  Collecting " + Math.Floor(book.Elapsed) + "/60s" : "");
+            string modeDesc = rolling
+                ? "Rolling " + entries + (timeUnit == TimeUnit.Sec ? "s" : "m") + " average (Rates: per " + rateUnitStr + ")"
+                : "Last 60 seconds (Rates: per " + rateUnitStr + ")";
+            int elapsedSec = (int)Math.Floor(book.Elapsed);
+            status.text = "All workspaces  |  " + modeDesc + (elapsedSec < windowSeconds ? "  |  Collecting " + elapsedSec + "/" + windowSeconds + "s" : "");
 
             if (viewMode == ViewMode.Basic)
             {
@@ -260,12 +283,12 @@ namespace KingdomGlobalLedger
             }
             else if (tab == 0)
             {
-                footer.text = "Hover to highlight. Click a row to expand/collapse; click View to center it.\nLast-minute building activity; currencies stay separate. Session history only.";
+                footer.text = "Hover to highlight. Click a row to expand/collapse; click View to center it.\nBuilding activity; currencies stay separate. Session history only.";
                 BuildCurrencies();
             }
             else
             {
-                footer.text = "Hover to highlight. Click a row to expand/collapse; click View to center it.\nLast-minute building production; items stay separate. Session history only.";
+                footer.text = "Hover to highlight. Click a row to expand/collapse; click View to center it.\nBuilding production; items stay separate. Session history only.";
                 BuildProduction();
             }
             for (int i = 0; i < VisibleRows.Count; i++)
@@ -279,7 +302,7 @@ namespace KingdomGlobalLedger
         void BuildBasic()
         {
             if (GamePlayer.Current == null) return;
-            var data = locations.Resolve(book.Snapshot());
+            var data = locations.Resolve(book.Snapshot(windowSeconds));
 
             // Section 1: CURRENCIES
             VisibleRows.Add(new RowData("basic/header/currencies", "CURRENCY NET COLLECTION", 0) { IsHeader = true });
@@ -320,13 +343,13 @@ namespace KingdomGlobalLedger
             }
             if (count == 0 && !showAll)
             {
-                VisibleRows.Add(new RowData("basic/item/empty", "No observed production in the last minute. Click Show All to list unlocked items.", 1));
+                VisibleRows.Add(new RowData("basic/item/empty", "No observed production in the recent window. Click Show All to list unlocked items.", 1));
             }
         }
         void BuildCurrencies()
         {
             if (GamePlayer.Current == null) return;
-            var data = locations.Resolve(book.Snapshot());
+            var data = locations.Resolve(book.Snapshot(windowSeconds));
             foreach (Currency currency in Enum.GetValues(typeof(Currency)))
             {
                 if (!currency.IsUnlocked()) continue;
@@ -335,7 +358,7 @@ namespace KingdomGlobalLedger
                 var active = data.Where(t => t.Totals.Active(c)).ToArray();
                 Add(root, LedgerUi.CurrencyName(currency) + " - Net Earnings", 0, currency, active.Sum(t => t.Totals.Net(c)), true);
                 if (!expanded.Contains(root)) continue;
-                if (active.Length == 0) { VisibleRows.Add(new RowData(root + "/empty", "No observed activity in the last minute.", 1)); continue; }
+                if (active.Length == 0) { VisibleRows.Add(new RowData(root + "/empty", "No observed activity in the recent window.", 1)); continue; }
                 foreach (var group in active.GroupBy(t => t.GroupKey).OrderBy(g => g.First().GroupName, StringComparer.CurrentCulture).ThenBy(g => g.Key, StringComparer.Ordinal))
                 {
                     string groupKey = root + "/" + group.Key;
@@ -369,7 +392,7 @@ namespace KingdomGlobalLedger
         void BuildProduction()
         {
             if (GamePlayer.Current == null) return;
-            var data = locations.Resolve(book.Snapshot());
+            var data = locations.Resolve(book.Snapshot(windowSeconds));
             foreach (var item in LedgerUi.OrderedUnlockedItems())
             {
                 string id = item.Identifier;
@@ -378,7 +401,7 @@ namespace KingdomGlobalLedger
                 if (!showAll && active.Length == 0) continue;
                 AddItem(root, LedgerUi.ItemName(item) + " - Net Production", 0, item, active.Sum(t => t.Totals.ItemNet(id)), true);
                 if (!expanded.Contains(root)) continue;
-                if (active.Length == 0) { VisibleRows.Add(new RowData(root + "/empty", "No observed activity in the last minute.", 1)); continue; }
+                if (active.Length == 0) { VisibleRows.Add(new RowData(root + "/empty", "No observed activity in the recent window.", 1)); continue; }
                 foreach (var group in active.GroupBy(t => t.GroupKey).OrderBy(g => g.First().GroupName, StringComparer.CurrentCulture).ThenBy(g => g.Key, StringComparer.Ordinal))
                 {
                     string groupKey = root + "/" + group.Key;
@@ -590,13 +613,13 @@ namespace KingdomGlobalLedger
                 shade.color = value.Depth == 0 ? new Color(.35f, .22f, .13f, .7f) : new Color(0, 0, 0, index % 2 == 0 ? .13f : .03f);
                 Color rateColor = value.Amount > 0 ? LedgerUi.Gain : value.Amount < 0 ? LedgerUi.Loss : LedgerUi.Muted;
                 bool isGold = value.Currency == Currency.Gold;
-                amount.text = value.Currency.HasValue ? LedgerUi.Rate(value.Amount, value.Currency.Value, owner.Unit) : value.Item != null ? LedgerUi.ItemRate(value.Amount, owner.Unit) : "";
+                amount.text = value.Currency.HasValue ? LedgerUi.Rate(value.Amount, value.Currency.Value, owner.Unit, owner.Divisor) : value.Item != null ? LedgerUi.ItemRate(value.Amount, owner.Unit, owner.Divisor) : "";
                 amount.color = rateColor;
                 amount.gameObject.SetActive(!isGold && (value.Currency.HasValue || value.Item != null));
                 goldGroup.gameObject.SetActive(isGold);
                 if (isGold)
                 {
-                    var (sign, g, s, c) = LedgerUi.SplitGoldScaled(value.Amount, owner.Unit);
+                    var (sign, g, s, c) = LedgerUi.SplitGoldScaled(value.Amount, owner.Unit, owner.Divisor);
                     goldText.text = sign + g.ToString("#,0", CultureInfo.InvariantCulture);
                     silverText.text = s.ToString(CultureInfo.InvariantCulture);
                     copperText.text = c.ToString(CultureInfo.InvariantCulture);

@@ -141,6 +141,9 @@ namespace KingdomGlobalLedger
                     && LedgerUi.ItemRate(3, LedgerPanel.TimeUnit.Sec) == "+0.05/sec"
                     && LedgerUi.ItemRate(3, LedgerPanel.TimeUnit.Hour) == "+180.00/hour",
                     "Gold rates use exact XXg XXs XXc denominations and other rates use two decimals with sec/min/hour scaling");
+                Check(LedgerUi.Rate(30, Currency.Gold, LedgerPanel.TimeUnit.Sec, 3) == "+0g 0s 10c /sec"
+                    && LedgerUi.ItemRate(6, LedgerPanel.TimeUnit.Sec, 3) == "+2.00/sec",
+                    "Rolling average calculation scales rates over dynamic window entries");
                 Check(LedgerLocations.CleanLabel("<size=48>01  FOREST DEFENSE</size>") == "01  FOREST DEFENSE",
                     "Container label cleaner strips rich-text size tags");
                 var player = GamePlayer.CreateNewPlayer(); player.Flows[0].Elements.Clear(); player.Flows[0].Label = "Ironworks";
@@ -258,6 +261,24 @@ namespace KingdomGlobalLedger
                 PointerClick(Panel.MinButton);
                 Check(Panel.Unit == LedgerPanel.TimeUnit.Min && basicGoldRate.Find("GoldUnit").GetComponent<TMP_Text>().text == "/min",
                     "Selecting min unit restores per-minute rate scaling");
+
+                Check(FoundationApi.ModConfig != null && FoundationApi.ModConfig.TryGetSection(Id, out var configSection) && configSection.Elements.Count >= 3,
+                    "Global Ledger registers configuration section with Foundation ModConfig");
+                EnableRollingAverage.Value = true;
+                RollingAverageEntries.Value = 3;
+                Panel.RefreshNow();
+                Check(Panel.WindowSeconds == 180 && Panel.Divisor == 3 && Panel.StatusText.Contains("Rolling 3m average"),
+                    "Enabling Rolling average config with Entry Count 3 scales min rate window to 3 minutes");
+                PointerClick(Panel.SecButton);
+                Check(Panel.WindowSeconds == 3 && Panel.Divisor == 3 && Panel.StatusText.Contains("Rolling 3s average"),
+                    "Selecting sec unit with Rolling average scales rate window to 3 entries based on sec");
+                EnableRollingAverage.Value = false;
+                Panel.RefreshNow();
+                Check(Panel.WindowSeconds == 60 && Panel.Divisor == 1 && Panel.StatusText.Contains("Last 60 seconds"),
+                    "Disabling Rolling average config restores standard 60-second window");
+                PointerClick(Panel.MinButton);
+                Check(Panel.WindowSeconds == 60 && Panel.Divisor == 1 && Panel.Unit == LedgerPanel.TimeUnit.Min,
+                    "Selecting min restores minute unit");
 
                 PointerClick(Panel.AdvButton);
                 Check(Panel.Mode == LedgerPanel.ViewMode.Adv, "Adv button switches to full hierarchical ledger view");
