@@ -1,0 +1,70 @@
+{
+  "id": "GlobalLedger",
+  "name": "Global Ledger",
+  "version": "0.1.11",
+  "author": "Urakka",
+  "description": "Kingdom-wide currency net earnings and item production breakdown from a top Mod Bar dropdown in Kingdom Inc.",
+  "repository": {
+    "platform": "GitHub",
+    "owner": "urakkaamyx",
+    "name": "KingdomInc_GlobalLedger",
+    "url": "https://github.com/urakkaamyx/KingdomInc_GlobalLedger",
+    "branch": "main",
+    "visibility": "public",
+    "topics": [
+      "kingdom-inc",
+      "kingdom-inc-mod",
+      "bepinex",
+      "harmony",
+      "global-ledger",
+      "economy",
+      "production",
+      "ui"
+    ],
+    "latestTag": "v0.1.11"
+  },
+  "distribution": {
+    "nexus": {
+      "game": "kingdominc",
+      "modId": 19,
+      "fileId": 8319102,
+      "url": "https://www.nexusmods.com/kingdominc/mods/19",
+      "requirements": [
+        {
+          "name": "Foundation",
+          "url": "https://www.nexusmods.com/kingdominc/mods/18",
+          "minimumVersion": "0.11.0",
+          "type": "nexus"
+        },
+        {
+          "name": "BepInEx 5",
+          "url": "https://github.com/BepInEx/BepInEx/releases",
+          "minimumVersion": "5.x",
+          "type": "offsite"
+        }
+      ],
+      "tags": [
+        "AI-Generated Content",
+        "Gameplay",
+        "Quality of Life",
+        "User Interface",
+        "Utilities for Players"
+      ],
+      "tagsVerified": true,
+      "requirementsVerified": true
+    }
+  },
+  "development": {
+    "framework": "Foundation",
+    "language": "C#",
+    "target": "netstandard2.1",
+    "dependencies": [
+      "BepInEx 5",
+      "Foundation >= 0.11.0"
+    ]
+  },
+  "publishing": {
+    "githubReleases": "https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases/tag/v0.1.11",
+    "nexusMods": "https://www.nexusmods.com/kingdominc/mods/19"
+  }
+}

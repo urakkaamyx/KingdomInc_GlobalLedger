@@ -1,47 +1,61 @@
 # Global Ledger
 
-Track live currency earnings, operating expenses, and item production across your entire kingdom from the top Mod Bar in Kingdom Inc.
+[GitHub releases](https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases) · [Nexus Mods](https://www.nexusmods.com/kingdominc/mods/19) · Version 0.1.11
 
-## Install and update
+Track live currency earnings, operating expenses, and item production across your entire kingdom from a dropdown on the top Mod Bar in Kingdom Inc.
 
-Install the requirements listed on the [Nexus page](https://www.nexusmods.com/kingdominc/mods/19) (**BepInEx 5** and **Foundation 0.6.0 or later**), then close Kingdom Inc and extract the ZIP into the game folder beside `KingdomInc.exe`. Confirm the installed file is at `BepInEx/plugins/GlobalLedger/GlobalLedger.dll` and launch the game.
+Monitor economy flow in real time without placing physical tracking nodes in every factory line.
 
 ## Features
 
-- **Rolling average UI button**: Toggle rolling averages on and off right from the top-right header bar via the `Rolling Avg` button (turns Gold when active) without opening the config menu.
-- **Mod Config menu integration**: Configure rolling average damping options from the Mod Config menu:
-  - **Rolling average**: Toggle to smooth out instantaneous spikes and jumpiness in rate calculations.
-  - **Entry Count**: Slider (2 to 30, default 3) to configure how many entries to average. When `sec` is selected, averages over the chosen number of seconds; when `min` or `hour` is selected, averages over that many minutes.
-- **Mod Bar dropdown**: Click **Global Ledger** on the right side of the shared Mod Bar beneath the currency bar to open or close the dropdown. While open, you can freely pan (WASD and mouse drag), zoom, and click on the workspace without closing the ledger.
-- **Basic | Adv modes**: Toggle between Basic summary and Adv hierarchical view using the `Basic | Adv` buttons in the top-right corner.
-  - **Basic mode**: Streamlined overview listing `Currency Net Collection` and `Item Net Production` (`[Icon] [Name] +/-XXX[icon] / {sec|min|hour}`), with items sorted by **Tier → A–Z**. Currencies and items without production activity in the window are cleanly omitted unless **Show All** is clicked.
-  - **Adv mode**: Full hierarchical breakdown (`Currency / Item > Container > Building > Operating Costs`). Defaults to everything collapsed for clean drilling down.
-- **Rate time unit selector**: Click `[sec | min | hour]` in the header bar (defaults to `min`) to dynamically scale all rates across both Basic and Adv modes.
-- **Currencies tab (Adv)**: View every unlocked currency's rolling net rate (`Earned - Spent` over the last 60 seconds). Gold is written out in full Gold, Silver, and Copper denominations with native coin symbols (`XX [Gold] XX [Silver] XX [Copper]`); other currencies retain their native units. Expand a currency root to inspect containers, individual buildings, and `Operating Costs` (icon-only currency rows).
-- **Production tab (Adv)**: View unlocked items (`Tier 1`–`Tier 12`, sorted **Tier → A–Z**) and their rolling net production rate (`Produced - Consumed`). Items with zero activity in the last minute are hidden by default; click **Show All** in the header bar to show or hide zero-activity unlocked items. Expand an item root to inspect containers, individual buildings, and `Operating Costs` (both consumed input items and spent currencies as icon-only rows).
-- **Container & workspace grouping**: Container rows display `[ContainerIcon] | [ProductionIcon] [ContainerName]` using the game's native container sprite, a `|` separator, and the overlapping icon sticker nearest the frame's top-left corner (or its building's production icon when no sticker is placed), alongside the cleaned container label (with TextMeshPro rich-text tags stripped and duplicate names disambiguated with `_#`).
-- **Default collapsed & independent expanders**: Hierarchical trees start collapsed by default. Click a row or its left arrow to expand or collapse its children without moving the camera.
-- **Hover highlight & dedicated `View` button**: Hovering a container or building row highlights the target in the current workspace without moving the camera. Live container and building rows include a right-aligned **View** button that switches workspaces if needed, centers and highlights the target for five seconds, and keeps the ledger open.
+- **Top Mod Bar Dropdown:** Access real-time financial and production data from the top Mod Bar at any time.
+- **Basic and Advanced Modes:**
+  - **Basic Mode:** Clean, scrollable summary of Currency Net Collection and Item Net Production sorted by Tier -> A–Z.
+  - **Advanced Mode:** Full hierarchical drill-down by Currency / Item > Container > Building > Operating Costs.
+- **Rate Scaling (sec / min / hour):** Switch rate calculations dynamically between per-second, per-minute, or per-hour display.
+- **Configurable Rolling Averages:** Smooth out rate spikes via a 2–30 sample rolling average, toggleable directly from the UI header or Mod Config.
+- **Multi-Currency Accounting:** Gold, Silver, and Copper use native denominations; Requisition, Mana, Crowns, Medals, and Rings maintain their own units.
+- **Container & Workspace Grouping:** Automatically groups production by blueprint containers and workspaces, with container icon stickers and clean names.
+- **Live View Navigation:** Click the View button on any container or building row to switch workspaces, pan the camera, and highlight the building.
 
-## How the accounting works
+## How the Accounting Works
 
-Rates reflect actual activity recorded in one-second buckets over the last 60 real elapsed seconds (`Earned - Spent` for currencies, `Produced - Consumed` for items). During the first minute of observation, the header shows a collecting indicator and displays the accumulated sample without extrapolating short bursts. Pausing the game produces no new activity while older observations age out.
+Rates reflect actual production and financial activity sampled in one-second intervals over a rolling 60-second window.
 
-Shop, Restaurant, Requisition Office, and Disenchanter collection-tray additions are combined with wallet credits so income is recognized when earned and collecting a tray never counts twice. Pure routing nodes and storage pass-throughs are excluded from item production and consumption. Deleted buildings keep their recorded observations under `Removed buildings` until the 60-second window expires.
+- Income and operating expenses are attributed when transactions occur.
+- Container collection tray changes are combined with wallet credits so income is recognized when earned without double-counting.
+- Pure routing nodes and storage pass-throughs are excluded to ensure true net production measurements.
 
-## Saves and removal
+## Requirements
 
-Accounting history is session-local and adds no custom buildings, research, or save data. To remove the mod, close Kingdom Inc and delete `BepInEx/plugins/GlobalLedger`.
+- Kingdom Inc (Windows x64 Mono)
+- [BepInEx 5](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.6) (5.4.23.6 or newer)
+- [Foundation](https://www.nexusmods.com/kingdominc/mods/18) (0.11.0 or newer)
 
-## Build from source
+## Installation
 
-Keep the source checkout at `<KingdomInc>/_Mods/GlobalLedger` so project references resolve against your local game and BepInEx assemblies:
+1. Install BepInEx 5 for Kingdom Inc.
+2. Install Foundation (0.11.0 or newer).
+3. Extract the release ZIP into your Kingdom Inc game directory.
+4. Verify the file exists at `BepInEx/plugins/GlobalLedger/GlobalLedger.dll`.
+5. Launch the game and access Global Ledger from the top Mod Bar!
 
-```powershell
-dotnet build .\_Mods\GlobalLedger\GlobalLedger.csproj -c Release
-.\_Mods\GlobalLedger\install.ps1
-```
+## Compatibility
 
-By rockyamyx / Urakka. Native game frames, fonts, and icons are used from the installed game and are not redistributed.
+| Class.Method | Hook Type | Impact |
+|---|---|---|
+| FlowIO.ConsumeItem | Harmony Postfix | Observes item consumption events across production chains. |
+| GamePlayer.AddCurrency | Harmony Postfix | Captures currency income credits from shops, quests, and rewards. |
+| GamePlayer.SpendCurrency | Harmony Postfix | Tracks currency spending events for production operating costs. |
+| WarProgress.UpdateWar | Harmony Prefix, Postfix & Finalizer | Observes war effort currency income and progress updates. |
+| GameUI.ProcessEscape | Harmony Prefix | Closes the Global Ledger dropdown panel when pressing Escape. |
+| GameUI.ToggleUI | Harmony Postfix | Synchronizes Global Ledger dropdown visibility with native HUD toggle states. |
+| FlowElement lifecycle methods | Harmony Prefix & Finalizer | Dynamically tracks production scopes across building updates and craft operations. |
 
-Source repository: https://github.com/urakkaamyx/KingdomInc_GlobalLedger
+## Removal
+
+Close the game and delete `BepInEx/plugins/GlobalLedger/`. Accounting history is session-local and leaves no persistent custom data in your saves.
+
+## Credits and Source
+
+Created by **Urakka** (rockyamyx). [Source code on GitHub](https://github.com/urakkaamyx/KingdomInc_GlobalLedger). Game artwork belongs to its respective owners.
