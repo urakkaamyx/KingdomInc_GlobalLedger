@@ -1,6 +1,8 @@
 # Global Ledger
 
-[GitHub releases](https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases) · [Nexus Mods](https://www.nexusmods.com/kingdominc/mods/19) · Version 0.1.11
+**Current release: 0.1.12 — for Kingdom Inc game version 1.0.14.**
+
+[GitHub releases](https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases) · [Nexus Mods](https://www.nexusmods.com/kingdominc/mods/19) · Version 0.1.12
 
 Track live currency earnings, operating expenses, and item production across your entire kingdom from a dropdown on the top Mod Bar in Kingdom Inc.
 
@@ -30,12 +32,12 @@ Rates reflect actual production and financial activity sampled in one-second int
 
 - Kingdom Inc (Windows x64 Mono)
 - [BepInEx 5](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.6) (5.4.23.6 or newer)
-- [Foundation](https://www.nexusmods.com/kingdominc/mods/18) (0.11.0 or newer)
+- [Foundation](https://www.nexusmods.com/kingdominc/mods/18) (0.14.0 or newer)
 
 ## Installation
 
 1. Install BepInEx 5 for Kingdom Inc.
-2. Install Foundation (0.11.0 or newer).
+2. Install Foundation (0.14.0 or newer).
 3. Extract the release ZIP into your Kingdom Inc game directory.
 4. Verify the file exists at `BepInEx/plugins/GlobalLedger/GlobalLedger.dll`.
 5. Launch the game and access Global Ledger from the top Mod Bar!
@@ -44,13 +46,13 @@ Rates reflect actual production and financial activity sampled in one-second int
 
 | Class.Method | Hook Type | Impact |
 |---|---|---|
-| FlowIO.ConsumeItem | Harmony Postfix | Observes item consumption events across production chains. |
-| GamePlayer.AddCurrency | Harmony Postfix | Captures currency income credits from shops, quests, and rewards. |
-| GamePlayer.SpendCurrency | Harmony Postfix | Tracks currency spending events for production operating costs. |
-| WarProgress.UpdateWar | Harmony Prefix, Postfix & Finalizer | Observes war effort currency income and progress updates. |
-| GameUI.ProcessEscape | Harmony Prefix | Closes the Global Ledger dropdown panel when pressing Escape. |
-| GameUI.ToggleUI | Harmony Postfix | Synchronizes Global Ledger dropdown visibility with native HUD toggle states. |
-| FlowElement lifecycle methods | Harmony Prefix & Finalizer | Dynamically tracks production scopes across building updates and craft operations. |
+| FlowIO.ConsumeItem | Foundation hook (postfix) | Observes item consumption events across production chains. |
+| GamePlayer.AddCurrency | Foundation hook (postfix) | Captures currency income credits from shops, quests, and rewards. |
+| GamePlayer.SpendCurrency | Foundation hook (postfix) | Tracks currency spending events for production operating costs. |
+| WarProgress.UpdateWar | Foundation execution observer | Observes war effort currency income and progress updates. |
+| GameUI.ProcessEscape | Foundation hook (prefix) | Closes the Global Ledger dropdown panel when pressing Escape. |
+| GameUI.ToggleUI | Foundation hook (postfix) | Synchronizes Global Ledger dropdown visibility with native HUD toggle states. |
+| FlowElement lifecycle methods | Foundation execution observer | Dynamically tracks production scopes across building updates and craft operations. |
 
 ## Removal
 
