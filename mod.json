@@ -7,8 +7,8 @@
   "repository": {
     "platform": "GitHub",
     "owner": "KingdomIncModding",
-    "name": "KingdomInc_GlobalLedger",
-    "url": "https://github.com/KingdomIncModding/KingdomInc_GlobalLedger",
+    "name": "GlobalLedger",
+    "url": "https://github.com/KingdomIncModding/GlobalLedger",
     "branch": "main",
     "visibility": "public",
     "topics": [
@@ -66,7 +66,7 @@
     "gameIntegration": "Foundation"
   },
   "publishing": {
-    "githubReleases": "https://github.com/KingdomIncModding/KingdomInc_GlobalLedger/releases/tag/v0.1.11",
+    "githubReleases": "https://github.com/KingdomIncModding/GlobalLedger/releases/tag/v0.1.11",
     "nexusMods": "https://www.nexusmods.com/kingdominc/mods/19",
     "archivePreviousReleases": false
   }
