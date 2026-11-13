@@ -6,9 +6,9 @@
   "description": "For Kingdom Inc game version 1.0.14. Kingdom-wide currency net earnings and item production breakdown from a top Mod Bar dropdown in Kingdom Inc.",
   "repository": {
     "platform": "GitHub",
-    "owner": "urakkaamyx",
+    "owner": "KingdomIncModding",
     "name": "KingdomInc_GlobalLedger",
-    "url": "https://github.com/urakkaamyx/KingdomInc_GlobalLedger",
+    "url": "https://github.com/KingdomIncModding/KingdomInc_GlobalLedger",
     "branch": "main",
     "visibility": "public",
     "topics": [
@@ -66,7 +66,7 @@
     "gameIntegration": "Foundation"
   },
   "publishing": {
-    "githubReleases": "https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases/tag/v0.1.11",
+    "githubReleases": "https://github.com/KingdomIncModding/KingdomInc_GlobalLedger/releases/tag/v0.1.11",
     "nexusMods": "https://www.nexusmods.com/kingdominc/mods/19",
     "archivePreviousReleases": false
   }

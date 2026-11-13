@@ -2,7 +2,7 @@
 
 **Current release: 0.1.12 — for Kingdom Inc game version 1.0.14.**
 
-[GitHub releases](https://github.com/urakkaamyx/KingdomInc_GlobalLedger/releases) · [Nexus Mods](https://www.nexusmods.com/kingdominc/mods/19) · Version 0.1.12
+[GitHub releases](https://github.com/KingdomIncModding/KingdomInc_GlobalLedger/releases) · [Nexus Mods](https://www.nexusmods.com/kingdominc/mods/19) · Version 0.1.12
 
 Track live currency earnings, operating expenses, and item production across your entire kingdom from a dropdown on the top Mod Bar in Kingdom Inc.
 
@@ -60,4 +60,4 @@ Close the game and delete `BepInEx/plugins/GlobalLedger/`. Accounting history is
 
 ## Credits and Source
 
-Created by **Urakka** (rockyamyx). [Source code on GitHub](https://github.com/urakkaamyx/KingdomInc_GlobalLedger). Game artwork belongs to its respective owners.
+Created by **Urakka** (rockyamyx). [Source code on GitHub](https://github.com/KingdomIncModding/KingdomInc_GlobalLedger). Game artwork belongs to its respective owners.
