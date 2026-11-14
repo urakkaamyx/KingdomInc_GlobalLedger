@@ -28,6 +28,123 @@ namespace KingdomGlobalLedger
         static readonly Regex RichTextTags = new Regex(@"</?[a-zA-Z][^>]*>", RegexOptions.Compiled);
         static Sprite cachedContainerIcon;
         readonly Dictionary<WorkspaceObject, string> containerIds = new Dictionary<WorkspaceObject, string>();
+        readonly Dictionary<string, LedgerLocationEntry> placements = new Dictionary<string, LedgerLocationEntry>();
+        readonly Dictionary<WorkspaceObject, GameWorkspace> parents = new Dictionary<WorkspaceObject, GameWorkspace>();
+        readonly Func<double> clock;
+        GameKingdom indexedPlayer;
+        IReadOnlyList<GameWorkspace> indexedFlows = Array.Empty<GameWorkspace>();
+        bool dirty = true;
+        ulong signature;
+        double nextReconcile;
+        internal int DiscoveryCount { get; private set; }
+        internal int PlacementBuildCount { get; private set; }
+        internal int CachedPlacementCount => placements.Count;
+
+        internal LedgerLocations(Func<double> clock = null)
+        {
+            this.clock = clock ?? (() => Time.realtimeSinceStartupAsDouble);
+        }
+
+        internal void Install(List<IDisposable> hooks)
+        {
+            // Existing Foundation notifications only; no reflection, native types or API changes.
+            hooks.Add(FoundationApi.Events.Subscribe<WorkspaceChangedEvent>(GlobalLedgerPlugin.Id, change => Invalidate()));
+            hooks.Add(FoundationApi.Events.Subscribe<KingdomFlowCreatedEvent>(GlobalLedgerPlugin.Id, change => Invalidate()));
+            hooks.Add(FoundationApi.Events.Subscribe<MachineRecipeChangedEvent>(GlobalLedgerPlugin.Id, change => Invalidate()));
+            hooks.Add(FoundationApi.ExecutionHooks.Subscribe(GlobalLedgerPlugin.Id, GameExecutionPoints.WorkspaceEdit,
+                call => null, (call, state) => Invalidate()));
+            hooks.Add(FoundationApi.GameHooks.Subscribe(GlobalLedgerPlugin.Id, GameHookPoints.DecorationStyleUpdate,
+                after: call => Invalidate()));
+            hooks.Add(FoundationApi.GameHooks.Subscribe(GlobalLedgerPlugin.Id, GameHookPoints.BuildingClearPorts,
+                after: call => Invalidate()));
+        }
+
+        internal void Invalidate() => dirty = true;
+
+        internal IReadOnlyList<GameWorkspace> AllFlows()
+        {
+            Reconcile();
+            return indexedFlows;
+        }
+
+        internal GameWorkspace WorkspaceOf(WorkspaceObject building)
+        {
+            Reconcile();
+            return parents.TryGetValue(building, out var flow) ? flow : building.ParentWorkspace;
+        }
+
+        void Reconcile()
+        {
+            var player = FoundationApi.Kingdom;
+            double now = clock();
+            if (!dirty && indexedPlayer == player && now < nextReconcile)
+                return;
+            var flows = GetAllFlows(player).ToArray();
+            ulong nextSignature = Fingerprint(flows);
+            DiscoveryCount++;
+            if (dirty || indexedPlayer != player || nextSignature != signature)
+            {
+                indexedFlows = flows;
+                placements.Clear();
+                parents.Clear();
+                foreach (var flow in flows)
+                    foreach (var building in flow.Buildings)
+                        parents[building] = flow;
+                foreach (var stale in containerIds.Keys.Where(container => !flows.Any(flow => flow.Decorations.Contains(container))).ToArray())
+                    containerIds.Remove(stale);
+            }
+            indexedPlayer = player;
+            signature = nextSignature;
+            dirty = false;
+            // Catch direct model edits from other mods that do not publish workspace events.
+            nextReconcile = now + 2.0;
+        }
+
+        static ulong Fingerprint(IReadOnlyList<GameWorkspace> flows)
+        {
+            unchecked
+            {
+                ulong value = 14695981039346656037UL;
+                foreach (var flow in flows)
+                {
+                    Mix(ref value, flow.GetHashCode());
+                    Mix(ref value, flow.Label);
+                    Mix(ref value, flow.BuildingCount);
+                    foreach (var building in flow.Buildings)
+                    {
+                        Mix(ref value, building.GetHashCode());
+                        Mix(ref value, building.Label);
+                        Mix(ref value, building.Position.GetHashCode());
+                        Mix(ref value, building.Size.GetHashCode());
+                    }
+                    Mix(ref value, flow.DecorationCount);
+                    foreach (var deco in flow.Decorations)
+                    {
+                        Mix(ref value, deco.GetHashCode());
+                        Mix(ref value, deco.Label);
+                        Mix(ref value, deco.Position.GetHashCode());
+                        Mix(ref value, deco.Size.GetHashCode());
+                        Mix(ref value, deco.IsContainer ? 1 : 0);
+                        Mix(ref value, deco.StickerIconName);
+                    }
+                }
+                return value;
+            }
+        }
+
+        static void Mix(ref ulong value, int next)
+        {
+            unchecked { value = (value ^ (uint)next) * 1099511628211UL; }
+        }
+
+        static void Mix(ref ulong value, string next)
+        {
+            Mix(ref value, next?.Length ?? -1);
+            if (next != null)
+                foreach (char c in next)
+                    Mix(ref value, c);
+        }
+
         int nextId;
         static Sprite DefaultIcon(WorkspaceObject container)
         {
@@ -85,14 +202,45 @@ namespace KingdomGlobalLedger
         {
             containerIds.Clear();
             nextId = 0;
+            placements.Clear();
+            parents.Clear();
+            indexedFlows = Array.Empty<GameWorkspace>();
+            indexedPlayer = null;
+            dirty = true;
+            nextReconcile = 0;
+            DiscoveryCount = PlacementBuildCount = 0;
         }
 
         internal IReadOnlyList<LedgerLocationEntry> Resolve(IReadOnlyList<LedgerBookTotals> totals)
         {
+            Reconcile();
+            if (indexedPlayer == null)
+                return Array.Empty<LedgerLocationEntry>();
+            var missing = totals.Where(item => !placements.ContainsKey(item.Source.Id)).ToArray();
+            if (missing.Length != 0)
+            {
+                foreach (var entry in ResolveUncached(missing))
+                    placements[entry.Totals.Source.Id] = entry;
+                PlacementBuildCount++;
+            }
+            var result = new List<LedgerLocationEntry>(totals.Count);
+            foreach (var item in totals)
+            {
+                var entry = placements[item.Source.Id];
+                entry.Totals = item;
+                if (entry.BuildingTarget == null)
+                    entry.BuildingName = item.Source.Name;
+                result.Add(entry);
+            }
+            return result;
+        }
+
+        IReadOnlyList<LedgerLocationEntry> ResolveUncached(IReadOnlyList<LedgerBookTotals> totals)
+        {
             var player = FoundationApi.Kingdom;
             if (player == null)
                 return Array.Empty<LedgerLocationEntry>();
-            var allFlows = GetAllFlows(player).ToList();
+            var allFlows = indexedFlows.ToList();
             var live = new Dictionary<string, LedgerTarget>();
             foreach (var flow in allFlows)
                 foreach (var element in flow.Buildings)

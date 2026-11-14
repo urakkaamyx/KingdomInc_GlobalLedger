@@ -10,7 +10,7 @@ namespace KingdomGlobalLedger
     {
         internal static LedgerTargetOutline Create(RectTransform target)
         {
-            var root = LedgerUi.Rect(target, "GlobalLedger.TargetHighlight");
+            var root = LedgerUi.Rect(target, "Ledger.TargetHighlight");
             root.gameObject.layer = target.gameObject.layer;
             LedgerUi.Fill(root, -5, -5, -5, -5);
             var graphic = root.gameObject.AddComponent<LedgerTargetOutline>();

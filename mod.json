@@ -1,7 +1,7 @@
 {
   "id": "GlobalLedger",
   "name": "Global Ledger",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "author": "Urakka",
   "description": "For Kingdom Inc game version 1.0.14. Kingdom-wide currency net earnings and item production breakdown from a top Mod Bar dropdown in Kingdom Inc.",
   "repository": {
@@ -21,7 +21,7 @@
       "production",
       "ui"
     ],
-    "latestTag": "v0.1.11"
+    "latestTag": "v0.1.12"
   },
   "distribution": {
     "nexus": {
@@ -33,8 +33,9 @@
         {
           "name": "Foundation",
           "url": "https://www.nexusmods.com/kingdominc/mods/18",
-          "minimumVersion": "0.14.0",
-          "type": "nexus"
+          "minimumVersion": "0.14.2",
+          "type": "nexus",
+          "fileId": 8358756
         },
         {
           "name": "BepInEx 5",
@@ -48,10 +49,11 @@
         "Gameplay",
         "Quality of Life",
         "User Interface",
-        "Utilities for Players"
+        "Utilities for Players",
+        "AI Media"
       ],
       "tagsVerified": true,
-      "requirementsVerified": true,
+      "requirementsVerified": false,
       "runtimeVersionId": "46785078755455"
     }
   },
@@ -61,12 +63,12 @@
     "target": "netstandard2.1",
     "dependencies": [
       "BepInEx 5",
-      "Foundation 0.14.0"
+      "Foundation 0.14.2"
     ],
     "gameIntegration": "Foundation"
   },
   "publishing": {
-    "githubReleases": "https://github.com/KingdomIncModding/GlobalLedger/releases/tag/v0.1.11",
+    "githubReleases": "https://github.com/KingdomIncModding/GlobalLedger/releases/tag/v0.1.12",
     "nexusMods": "https://www.nexusmods.com/kingdominc/mods/19",
     "archivePreviousReleases": false
   }

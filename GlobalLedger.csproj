@@ -1,24 +1,25 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <AssemblyName>GlobalLedger</AssemblyName>
-    <Version>0.1.12</Version>
-    <GameRoot Condition="'$(GameRoot)' == ''">$(MSBuildThisFileDirectory)..\..\</GameRoot>
-    <FoundationDll Condition="'$(FoundationDll)' == '' And Exists('$(MSBuildThisFileDirectory)..\Foundation\Release\Foundation.dll')">$(MSBuildThisFileDirectory)..\Foundation\Release\Foundation.dll</FoundationDll>
-    <FoundationDll Condition="'$(FoundationDll)' == ''">$(GameRoot)BepInEx\plugins\Foundation\Foundation.dll</FoundationDll>
-  </PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>GlobalLedger</AssemblyName>
+    <Version>0.1.13</Version>
+    <GameRoot Condition="'$(GameRoot)' == ''">$(MSBuildThisFileDirectory)..\..\</GameRoot>
+    <FoundationDll Condition="'$(FoundationDll)' == '' And Exists('$(MSBuildThisFileDirectory)..\Foundation\Release\Foundation.dll')">$(MSBuildThisFileDirectory)..\Foundation\Release\Foundation.dll</FoundationDll>
+    <FoundationDll Condition="'$(FoundationDll)' == ''">$(GameRoot)BepInEx\plugins\Foundation\Foundation.dll</FoundationDll>
+  </PropertyGroup>
   <ItemGroup>
-    <Compile Include="src\**\*.cs" />
-    <Reference Include="Foundation"><HintPath>$(FoundationDll)</HintPath><Private>false</Private></Reference>
-    <Reference Include="BepInEx"><HintPath>$(GameRoot)BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine.UIModule"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine.UI"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="Unity.TextMeshPro"><HintPath>$(GameRoot)KingdomInc_Data\Managed\Unity.TextMeshPro.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="Unity.InputSystem"><HintPath>$(GameRoot)KingdomInc_Data\Managed\Unity.InputSystem.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath><Private>false</Private></Reference>
-  </ItemGroup>
-</Project>
+    <Compile Include="src\**\*.cs" />
+    <Compile Remove="src\Verification\**\*.cs" />
+    <Reference Include="Foundation"><HintPath>$(FoundationDll)</HintPath><Private>false</Private></Reference>
+    <Reference Include="BepInEx"><HintPath>$(GameRoot)BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UIModule"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UI"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.TextMeshPro"><HintPath>$(GameRoot)KingdomInc_Data\Managed\Unity.TextMeshPro.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.InputSystem"><HintPath>$(GameRoot)KingdomInc_Data\Managed\Unity.InputSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GameRoot)KingdomInc_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

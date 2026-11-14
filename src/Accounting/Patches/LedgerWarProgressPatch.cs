@@ -25,7 +25,7 @@ namespace KingdomGlobalLedger
                 if (warMedals > 0 && GlobalLedgerPlugin.Instance?.Book != null && FoundationApi.Kingdom != null)
                 {
                     var war = __instance.War;
-                    var allWarEfforts = LedgerLocations.GetAllFlows(FoundationApi.Kingdom)?.SelectMany(f => f.Buildings.Where(element => element.TypeId == "WarEffort")).ToList();
+                    var allWarEfforts = GlobalLedgerPlugin.Instance.Locations.AllFlows().SelectMany(f => f.Buildings.Where(element => element.TypeId == "WarEffort")).ToList();
                     var warEfforts = allWarEfforts?.Where(w => w != null && w.Production.War == war).ToList();
                     if (warEfforts != null && warEfforts.Count > 0)
                     {

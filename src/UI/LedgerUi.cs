@@ -58,6 +58,41 @@ namespace KingdomGlobalLedger
             frame = Resources.FindObjectsOfTypeAll<Sprite>().FirstOrDefault(s => s.name == "DefaultBorderDark");
         }
 
+        internal TMP_InputField Search(Transform parent, string name, Action<string> changed)
+        {
+            var rect = Rect(parent, name);
+            var background = Background(rect, new Color(0, 0, 0, .3f));
+            var viewport = Rect(rect, "TextViewport");
+            Fill(viewport, 10, 0, 10, 0);
+            viewport.gameObject.AddComponent<RectMask2D>();
+            var text = Text(viewport, "Text", "", 17);
+            var placeholder = Text(viewport, "Placeholder", "Search resources, containers or buildings...", 17);
+            placeholder.color = Muted;
+            var input = rect.gameObject.AddComponent<TMP_InputField>();
+            input.targetGraphic = background;
+            input.textViewport = viewport;
+            input.textComponent = text;
+            input.placeholder = placeholder;
+            input.lineType = TMP_InputField.LineType.SingleLine;
+            input.richText = false;
+            input.onValueChanged.AddListener(value => changed(value));
+            return input;
+        }
+
+        internal static string FormatAmount(double value, bool signed = false)
+        {
+            double rounded = Math.Round(value, 2, MidpointRounding.AwayFromZero);
+            return (signed && rounded > 0 ? "+" : "") + rounded.ToString("#,0.##", CultureInfo.InvariantCulture);
+        }
+
+        internal static (string Sign, long Gold, long Silver, long Copper) SplitGoldCompact(long value)
+        {
+            decimal magnitude = Math.Abs((decimal)value);
+            if (magnitude >= 10000)
+                magnitude = Math.Round(magnitude / 100m, 0, MidpointRounding.AwayFromZero) * 100m;
+            return (value > 0 ? "+" : value < 0 ? "-" : "", (long)(magnitude / 10000m), (long)(magnitude / 100m) % 100, (long)(magnitude % 100m));
+        }
+
         internal static Sprite CopperCoin()
         {
             ResolveCoins();
@@ -121,7 +156,7 @@ namespace KingdomGlobalLedger
         internal static string ItemRate(long value, LedgerPanel.TimeUnit unit = LedgerPanel.TimeUnit.Min, int divisor = 1)
         {
             double amount = Math.Round(ScaleRate(value, unit, divisor), 2, MidpointRounding.AwayFromZero);
-            return (amount > 0 ? "+" : "") + amount.ToString("0.00", CultureInfo.InvariantCulture) + TimeUnitSuffix(unit);
+            return FormatAmount(amount, true) + TimeUnitSuffix(unit);
         }
 
         internal static int ItemTier(GameItemType item)
@@ -161,7 +196,7 @@ namespace KingdomGlobalLedger
             }
 
             double amount = Math.Round(ScaleRate(value, unit, divisor), 2, MidpointRounding.AwayFromZero);
-            return (amount > 0 ? "+" : "") + amount.ToString("0.00", CultureInfo.InvariantCulture) + TimeUnitSuffix(unit);
+            return FormatAmount(amount, true) + TimeUnitSuffix(unit);
         }
 
         internal static RectTransform Rect(Transform parent, string name)
@@ -238,7 +273,9 @@ namespace KingdomGlobalLedger
             text.color = Paper;
             text.fontSize = size;
             text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.overflowMode = TextOverflowModes.Ellipsis;
+            // The native pixel16 font has no ellipsis glyph. Truncate directly
+            // instead of making TMP warn and fall back to this mode itself.
+            text.overflowMode = TextOverflowModes.Truncate;
             text.alignment = TextAlignmentOptions.MidlineLeft;
             text.richText = false;
             text.raycastTarget = false;

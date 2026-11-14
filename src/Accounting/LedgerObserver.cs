@@ -17,13 +17,23 @@ namespace KingdomGlobalLedger
             map[key] = existing + delta;
         }
 
+        internal static long ObservedScopes, SkippedScopes, RecordedBatches;
         internal static LedgerFrame Begin(WorkspaceObject element)
         {
             GlobalLedgerPlugin.Instance?.EnsurePlayer();
-            if (FoundationApi.Kingdom == null || current?.Element == element)
+            if (element == null || FoundationApi.Kingdom == null || current?.Element == element)
                 return null;
+            var plan = LedgerObservationPlan.For(element);
+            if (plan.Passive || (element.Production.IsRecipe && !element.Production.HasRecipe))
+            {
+                SkippedScopes++;
+                return null;
+            }
+            ObservedScopes++;
             var frame = pool.Count > 0 ? pool.Pop() : new LedgerFrame();
             frame.Element = element;
+            frame.Plan = plan;
+            frame.CaptureOutputs = plan.CaptureOutputs(element);
             frame.Parent = current;
             frame.Player = FoundationApi.Kingdom;
             Array.Clear(frame.Income, 0, 9);
@@ -33,7 +43,8 @@ namespace KingdomGlobalLedger
             frame.VisitorsBefore.Clear();
             frame.Produced.Clear();
             frame.Consumed.Clear();
-            ReadTray(element, frame.Tray);
+            if (plan.Till)
+                ReadTray(element, frame.Tray);
             SnapshotItemsBefore(element, frame);
             current = frame;
             return frame;
@@ -43,14 +54,7 @@ namespace KingdomGlobalLedger
         static readonly Stack<LedgerFrame> pool = new Stack<LedgerFrame>();
         internal static LedgerBookSource Describe(WorkspaceObject element)
         {
-            string label = element.Production.DefaultLabel;
-            string typeName = FoundationApi.GameInfo.Translate(label);
-            if (string.IsNullOrEmpty(typeName) || typeName.StartsWith("@"))
-                typeName = Regex.Replace(element.TypeId, "([a-z])([A-Z])", "$1 $2");
-            var flow = element.ParentWorkspace;
-            string detail = element.Production.HasRecipe ? FoundationApi.GameInfo.Translate(element.Production.RecipeDisplayName) : FoundationApi.GameInfo.Translate(element.Label);
-            string name = (LedgerLocations.CleanLabel(flow?.Label) ?? "Workspace") + " / " + detail + " [" + element.Position.x + ", " + element.Position.y + "]";
-            return new LedgerBookSource(element.Guid, element.TypeId, typeName, name);
+            return LedgerSourceCache.Describe(element);
         }
 
         // Balance in till + wallet income makes collecting a transfer, never a second sale.
@@ -63,41 +67,28 @@ namespace KingdomGlobalLedger
             {
                 if (frame.Player != FoundationApi.Kingdom || GlobalLedgerPlugin.Instance == null)
                     return;
-                long gold = frame.Element.Production.CollectedCurrency(GameCurrency.Gold), mana = frame.Element.Production.CollectedCurrency(GameCurrency.Mana), crowns = frame.Element.Production.CollectedCurrency(GameCurrency.Crown), req = frame.Element.Production.CollectedCurrency(GameCurrency.Requisition);
-                frame.Income[0] += gold - frame.Tray[0];
-                frame.Income[1] += req - frame.Tray[1];
-                frame.Income[4] += mana - frame.Tray[4];
-                frame.Income[5] += crowns - frame.Tray[5];
+                if (frame.Plan.Till)
+                {
+                    frame.Income[0] += frame.Element.Production.CollectedCurrency(GameCurrency.Gold) - frame.Tray[0];
+                    frame.Income[1] += frame.Element.Production.CollectedCurrency(GameCurrency.Requisition) - frame.Tray[1];
+                    frame.Income[4] += frame.Element.Production.CollectedCurrency(GameCurrency.Mana) - frame.Tray[4];
+                    frame.Income[5] += frame.Element.Production.CollectedCurrency(GameCurrency.Crown) - frame.Tray[5];
+                }
                 SnapshotItemsAfter(frame.Element, frame);
-                LedgerBookSource source = null;
-                for (int c = 0; c < 9; c++)
-                {
-                    long earned = Math.Max(0, frame.Income[c]);
-                    if (earned == 0 && frame.Spending[c] == 0)
-                        continue;
-                    if (source == null)
-                        source = Describe(frame.Element);
-                    GlobalLedgerPlugin.Instance.Book.Record(source, (GameCurrency)c, earned, frame.Spending[c]);
-                }
-
-                foreach (var itemId in frame.Produced.Keys.Union(frame.Consumed.Keys))
-                {
-                    frame.Produced.TryGetValue(itemId, out var produced);
-                    frame.Consumed.TryGetValue(itemId, out var consumed);
-                    if (produced == 0 && consumed == 0)
-                        continue;
-                    if (source == null)
-                        source = Describe(frame.Element);
-                    GlobalLedgerPlugin.Instance.Book.RecordItem(source, itemId, produced, consumed);
-                }
+                if (GlobalLedgerPlugin.Instance.Book.RecordBatch(frame))
+                    RecordedBatches++;
             }
             finally
             {
                 frame.Element = null;
                 frame.Parent = null;
                 frame.Player = null;
+                frame.Plan = null;
                 frame.OutputsBefore.Clear();
                 frame.VisitorsBefore.Clear();
+                frame.RemainingVisitors.Clear();
+                frame.Produced.Clear();
+                frame.Consumed.Clear();
                 pool.Push(frame);
             }
         }
@@ -167,13 +158,17 @@ namespace KingdomGlobalLedger
         {
             current = null;
             pool.Clear();
+            LedgerObservationPlan.Reset();
+            LedgerSourceCache.Reset();
+            ObservedScopes = SkippedScopes = RecordedBatches = 0;
         }
 
         static void SnapshotItemsAfter(WorkspaceObject element, LedgerFrame frame)
         {
             if (frame.VisitorsBefore.Count > 0)
             {
-                var remaining = new HashSet<GameInventoryItem>();
+                var remaining = frame.RemainingVisitors;
+                remaining.Clear();
                 foreach (var visitor in element.Production.Visitors)
                     remaining.Add(visitor);
                 int visitorOutputs = element.TypeId == "Arena" ? Math.Min(2, element.Outputs.Count) : Math.Min(1, element.Outputs.Count);
@@ -200,29 +195,21 @@ namespace KingdomGlobalLedger
                 }
             }
 
-            if (element.Production.IsResource || new[]
-            {
-                "Forest",
-                "Dungeon",
-                "WarEffort",
-                "DevSpawner"
-            }.Contains(element.TypeId))
-                RecordNewOutputs(element, frame, 0);
-            else if (element.Production.IsRecipe && !element.Production.HasEnhancementResult)
-                RecordNewOutputs(element, frame, 0);
-            else if (element.TypeId == "QuestBoard")
-                RecordNewOutputs(element, frame, 1);
+            if (frame.CaptureOutputs)
+                RecordNewOutputs(element, frame, element.TypeId == "QuestBoard" ? 1 : 0);
         }
 
         static void SnapshotItemsBefore(WorkspaceObject element, LedgerFrame frame)
         {
-            foreach (var output in element.Outputs)
-                foreach (var item in output.BufferedItems)
-                    if (item != null)
-                        frame.OutputsBefore.Add(item);
-            foreach (var item in element.Production.Visitors)
-                if (element.TypeId != "Arena" || item.Type?.IsHuman == true)
-                    frame.VisitorsBefore.Add((item, item.Type));
+            if (frame.CaptureOutputs || frame.Plan.Visitors)
+                foreach (var output in element.Outputs)
+                    foreach (var item in output.BufferedItems)
+                        if (item != null)
+                            frame.OutputsBefore.Add(item);
+            if (frame.Plan.Visitors)
+                foreach (var item in element.Production.Visitors)
+                    if (element.TypeId != "Arena" || item.Type?.IsHuman == true)
+                        frame.VisitorsBefore.Add((item, item.Type));
         }
     }
 }

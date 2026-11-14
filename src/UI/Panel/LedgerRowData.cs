@@ -23,7 +23,8 @@ namespace KingdomGlobalLedger
         internal readonly int Depth;
         internal GameCurrency? GameCurrency;
         internal GameItemType Item;
-        internal long Amount;
+        internal long Amount, Income, Outflow;
+        internal float Top;
         internal bool Expandable, Open;
         internal bool IconOnly, IsHeader;
         internal Sprite PrefixIcon, Icon;

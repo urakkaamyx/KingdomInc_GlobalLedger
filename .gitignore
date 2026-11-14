@@ -19,3 +19,6 @@ obj/
 *.suo
 .env
 .env.*
+# Local build outputs (never commit)
+/Release/
+/Debug/
