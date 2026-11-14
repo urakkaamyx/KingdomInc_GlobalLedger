@@ -21,7 +21,7 @@
       "production",
       "ui"
     ],
-    "latestTag": "v0.1.12"
+    "latestTag": "v0.1.13"
   },
   "distribution": {
     "nexus": {
@@ -53,8 +53,8 @@
         "AI Media"
       ],
       "tagsVerified": true,
-      "requirementsVerified": false,
-      "runtimeVersionId": "46785078755455"
+      "requirementsVerified": true,
+      "runtimeVersionId": "46785078755474"
     }
   },
   "development": {
@@ -68,7 +68,7 @@
     "gameIntegration": "Foundation"
   },
   "publishing": {
-    "githubReleases": "https://github.com/KingdomIncModding/GlobalLedger/releases/tag/v0.1.12",
+    "githubReleases": "https://github.com/KingdomIncModding/GlobalLedger/releases/tag/v0.1.13",
     "nexusMods": "https://www.nexusmods.com/kingdominc/mods/19",
     "archivePreviousReleases": false
   }
